@@ -1,0 +1,99 @@
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--cl-outline-variant);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.topbar__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--cl-on-surface);
+}
+
+.topbar__subtitle {
+  font-size: 0.85rem;
+  color: var(--cl-on-surface-variant);
+  margin-top: 2px;
+}
+
+.topbar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.topbar__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--cl-surface-container);
+  border: 1px solid var(--cl-outline-variant);
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  transition: border-color var(--transition-fast);
+}
+.topbar__search:focus-within {
+  border-color: var(--cl-primary);
+  box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.15);
+}
+
+.topbar__search-input {
+  background: transparent;
+  border: none;
+  color: var(--cl-on-surface);
+  font-size: 0.85rem;
+  width: 180px;
+}
+.topbar__search-input::placeholder {
+  color: var(--cl-outline);
+}
+
+.topbar__icon-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--cl-surface-container);
+  border: 1px solid var(--cl-outline-variant);
+  color: var(--cl-on-surface-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+.topbar__icon-btn:hover {
+  background: var(--cl-surface-container-high);
+  color: var(--cl-on-surface);
+}
+
+.topbar__notification-dot {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--cl-error);
+  border: 2px solid var(--cl-surface-container);
+}
+
+.topbar__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--cl-primary), var(--cl-tertiary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: white;
+  cursor: pointer;
+}

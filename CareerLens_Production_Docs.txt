@@ -1,0 +1,530 @@
+
+
+
+
+CareerLens
+AI Resume Screener & Cover Letter Coach
+Production Engineering Documentation
+Stack: MERN  •  Google OAuth + JWT  •  OpenAI GPT-4o
+Version 1.0  •  May 2026
+
+
+
+
+1. Product Requirements Document (PRD)
+1.1 Objectives
+CareerLens eliminates the guesswork in job applications by giving candidates instant AI-driven feedback on resume-to-job-description fit, auto-generating tailored cover letters, and tracking every application in a personal dashboard.
+
+
+1.2 Target Users
+
+1.3 Success Metrics
+North Star
+Number of applications submitted per active user per week.
+Supporting KPIs
+
+1.4 Core Features (MVP)
+Must-Haves
+Google OAuth login with JWT session management
+Resume upload (PDF, DOCX, TXT; max 5 MB) with server-side text extraction
+Job description input (paste text or URL scrape)
+AI fit score (0-100) with strengths[], gaps[], and keyword analysis
+AI-generated cover letter (3 paragraphs, editable in-browser)
+Application Kanban board (columns: Saved / Applied / Interview / Offer / Rejected)
+Per-application history: resume used, JD, score, cover letter version
+JWT refresh token rotation with secure HTTP-only cookie
+
+Nice-to-Haves (Post-MVP)
+Email reminders for follow-up (Nodemailer + cron)
+Chrome extension: auto-detect JD from job board pages
+Resume version manager (multiple resume files per user)
+Interview prep: AI-generated likely questions per JD
+Analytics dashboard: score trend over time per user
+
+1.5 User Stories & Acceptance Criteria
+US-01: Google OAuth Login
+As a job seeker, I want to log in with Google so I do not need to remember a password.
+
+
+US-02: Resume Upload & Analysis
+As a job seeker, I want to upload my resume and paste a JD to get an instant AI fit score.
+
+
+US-03: Cover Letter Generation
+As a job seeker, I want a tailored cover letter generated from my resume and the JD.
+
+
+US-04: Application Kanban
+As a job seeker, I want to track all my applications in one board so I know their status at a glance.
+
+
+1.6 Non-Functional Requirements
+Security
+All API routes require Authorization: Bearer <accessToken> except /auth/*
+JWT secrets stored in environment variables only; never committed to source control
+Refresh tokens stored as HTTP-only, Secure, SameSite=Strict cookies
+Uploaded files scanned with file-type package to validate MIME; stored in /tmp, never served directly
+Rate limiting: 60 req/min per IP on all routes; 10 req/min per user on /api/ai/* routes
+Helmet.js sets all recommended security headers
+CORS restricted to frontend origin via environment variable
+
+Performance
+First Contentful Paint < 1.5s (React code-split by route)
+AI endpoint P95 < 10s; streaming response used to reduce perceived latency
+MongoDB indexes on: users.googleId, applications.userId, applications.status
+File upload uses multipart streaming (Multer); max 5 MB enforced at middleware level
+
+Accessibility
+WCAG 2.1 AA compliance for all core flows
+Kanban board keyboard-navigable (arrow keys, Enter to expand)
+All form inputs have visible labels and ARIA attributes
+Color contrast ratio >= 4.5:1 for all text
+
+Compliance
+GDPR: users can request data export and account deletion via settings page
+Uploaded files deleted from server after text extraction (not persisted on disk)
+OpenAI API calls: no PII sent beyond resume text; user data not used for model training (Enterprise API)
+
+1.7 API Contracts (Summary)
+Full API design is in Section 3. This table summarises the contract surface.
+
+
+2. System Architecture Overview
+2.1 High-Level Architecture
+CareerLens follows a three-tier architecture: a React SPA served from a CDN, a stateless Node/Express API on a container host, and a managed MongoDB Atlas cluster. The AI layer is an external dependency (OpenAI API) called exclusively from the server, never the client.
+
+Client (React SPA on Vercel CDN) --> Express API (Railway / Render) --> MongoDB Atlas (M0 free / M10 production)
+Express API --> OpenAI GPT-4o API (server-side only)
+Express API --> Google OAuth 2.0 (passport-google-oauth20)
+
+Request Flow: Resume Analysis
+User uploads resume file via React dropzone (multipart/form-data)
+Express Multer middleware validates file type and size
+pdf-parse / mammoth extracts raw text from file
+Auth middleware verifies JWT from Authorization header
+Analysis controller builds structured prompt, calls OpenAI Chat Completions API
+Response JSON (score, strengths, gaps) saved to MongoDB analyses collection
+Response streamed back to client; React renders score card
+
+2.2 Tech Stack Decisions
+
+3. API Design Guide
+3.1 Base URL & Versioning
+
+3.2 Authentication Flow
+Google OAuth + JWT
+Client navigates to GET /auth/google
+Passport.js redirects to Google consent screen
+Google redirects to GET /auth/google/callback with authorization code
+Passport exchanges code for Google profile; upserts user in MongoDB
+Server issues: accessToken (JWT, 15 min, in JSON body) + refreshToken (JWT, 7 days, HTTP-only cookie)
+Client stores accessToken in memory (React context); sends as Authorization: Bearer <token>
+On 401 response, client calls POST /auth/refresh; server validates refresh cookie, issues new pair
+POST /auth/logout clears cookie and marks refresh token revoked in DB
+
+Security note: never store accessToken in localStorage. Keep in memory only to prevent XSS token theft.
+
+3.3 Endpoint Reference
+Auth Endpoints
+
+User Endpoints
+
+Resume Endpoints
+
+Analysis Endpoints
+
+Cover Letter Endpoints
+
+Application (Kanban) Endpoints
+
+3.4 Error Response Schema
+All errors follow a consistent envelope:
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Human-readable description",
+    "details": {}   // optional field-level errors
+  }
+}
+
+
+4. Database Schema Overview
+4.1 Collections
+users
+
+resumes
+
+analyses
+
+coverletters
+
+applications
+
+4.2 Relationships Diagram (Text)
+users (1) ──< resumes (many)
+users (1) ──< analyses (many)
+resumes (1) ──< analyses (many)
+analyses (1) ──0..1── coverletters (one-to-one optional)
+users (1) ──< applications (many)
+applications >──0..1── analyses (optional FK)
+applications >──0..1── coverletters (optional FK)
+
+5. Project Structure & File/Folder Layout
+5.1 Repository Root
+careerlens/
+├── backend/                  # Express API
+├── frontend/                 # React (Vite) SPA
+├── docker-compose.yml        # Local dev orchestration
+├── .github/workflows/        # CI/CD pipelines
+└── README.md
+
+5.2 Backend Structure
+backend/
+├── src/
+│   ├── config/
+│   │   ├── db.js             # Mongoose connect + error handling
+│   │   ├── passport.js       # Google OAuth strategy
+│   │   └── openai.js         # OpenAI client singleton
+│   ├── middleware/
+│   │   ├── auth.js           # verifyAccessToken middleware
+│   │   ├── rateLimiter.js    # express-rate-limit configs
+│   │   ├── errorHandler.js   # Global error handler
+│   │   ├── upload.js         # Multer config (memory storage)
+│   │   └── validate.js       # Joi/Zod request validation
+│   ├── models/
+│   │   ├── User.js
+│   │   ├── Resume.js
+│   │   ├── Analysis.js
+│   │   ├── CoverLetter.js
+│   │   └── Application.js
+│   ├── routes/
+│   │   ├── auth.routes.js
+│   │   ├── user.routes.js
+│   │   ├── resume.routes.js
+│   │   ├── analysis.routes.js
+│   │   ├── coverLetter.routes.js
+│   │   └── application.routes.js
+│   ├── controllers/
+│   │   ├── auth.controller.js
+│   │   ├── user.controller.js
+│   │   ├── resume.controller.js
+│   │   ├── analysis.controller.js
+│   │   ├── coverLetter.controller.js
+│   │   └── application.controller.js
+│   ├── services/
+│   │   ├── ai.service.js     # OpenAI prompt templates + calls
+│   │   ├── extract.service.js # pdf-parse + mammoth text extraction
+│   │   └── token.service.js  # JWT issue / verify / rotate
+│   ├── utils/
+│   │   ├── ApiError.js       # Custom error class
+│   │   ├── asyncHandler.js   # try/catch wrapper for controllers
+│   │   └── logger.js         # Winston logger
+│   └── app.js               # Express app setup (no listen here)
+├── server.js                # Entry point: connect DB, start server
+├── .env.example
+├── Dockerfile
+└── package.json
+
+5.3 Frontend Structure
+frontend/
+├── src/
+│   ├── api/                  # Axios instance + per-resource hooks
+│   │   ├── axios.js          # Base instance, interceptors, token refresh
+│   │   ├── auth.api.js
+│   │   ├── resume.api.js
+│   │   ├── analysis.api.js
+│   │   ├── coverLetter.api.js
+│   │   └── application.api.js
+│   ├── components/           # Shared, reusable UI components
+│   │   ├── ui/               # Headless + styled primitives
+│   │   │   ├── Button.jsx
+│   │   │   ├── Card.jsx
+│   │   │   ├── Modal.jsx
+│   │   │   ├── Toast.jsx
+│   │   │   └── Spinner.jsx
+│   │   ├── resume/
+│   │   │   ├── ResumeDropzone.jsx
+│   │   │   └── ResumeList.jsx
+│   │   ├── analysis/
+│   │   │   ├── ScoreCard.jsx
+│   │   │   ├── StrengthsList.jsx
+│   │   │   └── GapsList.jsx
+│   │   ├── kanban/
+│   │   │   ├── KanbanBoard.jsx
+│   │   │   ├── KanbanColumn.jsx
+│   │   │   └── ApplicationCard.jsx
+│   │   └── coverletter/
+│   │       ├── CoverLetterEditor.jsx
+│   │       └── CoverLetterPreview.jsx
+│   ├── context/
+│   │   └── AuthContext.jsx   # Access token in memory, user state
+│   ├── hooks/
+│   │   ├── useAuth.js
+│   │   ├── useAnalysis.js
+│   │   └── useApplications.js
+│   ├── pages/
+│   │   ├── LandingPage.jsx
+│   │   ├── DashboardPage.jsx # Kanban board
+│   │   ├── AnalysisPage.jsx  # Upload + score + letter
+│   │   ├── ApplicationPage.jsx
+│   │   ├── SettingsPage.jsx
+│   │   └── AuthCallbackPage.jsx
+│   ├── router/
+│   │   └── index.jsx         # React Router v6 data router
+│   ├── utils/
+│   │   ├── formatters.js
+│   │   └── validators.js
+│   ├── App.jsx
+│   └── main.jsx
+├── index.html
+├── vite.config.js
+├── tailwind.config.js
+├── .env.example
+└── package.json
+
+6. Development Roadmap
+6.1 MVP Milestones (8 Weeks)
+
+
+6.2 CI/CD Pipeline
+GitHub Actions Workflow: .github/workflows/ci.yml
+Trigger: push to any branch; PR to main
+Jobs: lint (ESLint + Prettier check), test (Jest unit + integration against MongoDB memory server), build (Docker image build)
+On merge to main: deploy backend to Railway via Railway CLI action; deploy frontend to Vercel via Vercel action
+Environment secrets: stored in GitHub Actions Secrets; injected at build time
+
+Branch Strategy
+
+7. Deployment & Ops Guide
+7.1 Environment Variables
+Backend (.env)
+
+Frontend (.env)
+
+7.2 Docker Setup
+backend/Dockerfile
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY src/ ./src/
+COPY server.js ./
+EXPOSE 5000
+CMD ["node", "server.js"]
+
+docker-compose.yml (Local Dev)
+version: '3.9'
+services:
+  backend:
+    build: ./backend
+    ports: ['5000:5000']
+    env_file: ./backend/.env
+    depends_on: [mongo]
+    volumes: ['./backend/src:/app/src']  # hot reload via nodemon
+  mongo:
+    image: mongo:7
+    ports: ['27017:27017']
+    volumes: ['mongo_data:/data/db']
+  frontend:
+    build: ./frontend
+    ports: ['5173:5173']
+    env_file: ./frontend/.env
+    volumes: ['./frontend/src:/app/src']
+volumes:
+  mongo_data:
+
+7.3 Production Monitoring & Logging
+
+8. Coding Standards & Review Guidelines
+8.1 Linting & Formatting
+
+8.2 Testing Strategy
+Backend
+Unit tests (Jest): services and utility functions in isolation. Mock OpenAI SDK and Mongoose.
+Integration tests (Jest + Supertest + mongodb-memory-server): test full route -> controller -> DB cycle without real DB.
+Target coverage: >= 70% lines for services/controllers. Coverage report generated on CI.
+
+Frontend
+Unit tests (Vitest + React Testing Library): test individual components with mock API responses.
+Focus areas: ScoreCard rendering, KanbanBoard column moves, AuthContext token refresh logic.
+No end-to-end tests in MVP; add Playwright in post-MVP sprint.
+
+8.3 PR Checklist
+
+9. Minimal Viable Frontend/Backend Paths
+9.1 Backend Bootstrap Commands
+# Clone and enter backend
+git clone https://github.com/your-org/careerlens.git && cd careerlens/backend
+
+# Install dependencies
+npm install
+
+# Copy and fill environment variables
+cp .env.example .env  # then edit .env with your keys
+
+# Start development server (nodemon hot reload)
+npm run dev
+
+# Run tests
+npm test
+
+# Verify health endpoint
+curl http://localhost:5000/health
+
+9.2 server.js Entry Point
+const app = require('./src/app');
+const connectDB = require('./src/config/db');
+const logger = require('./src/utils/logger');
+
+const PORT = process.env.PORT || 5000;
+
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    logger.info(`Server running on port ${PORT}`);
+  });
+}).catch(err => {
+  logger.error('DB connection failed', err);
+  process.exit(1);
+});
+
+9.3 src/app.js Core Setup
+const express = require('express');
+const helmet = require('helmet');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const passport = require('passport');
+require('./config/passport');
+
+const authRoutes = require('./routes/auth.routes');
+const userRoutes = require('./routes/user.routes');
+const resumeRoutes = require('./routes/resume.routes');
+const analysisRoutes = require('./routes/analysis.routes');
+const coverLetterRoutes = require('./routes/coverLetter.routes');
+const applicationRoutes = require('./routes/application.routes');
+const errorHandler = require('./middleware/errorHandler');
+const { apiLimiter } = require('./middleware/rateLimiter');
+
+const app = express();
+app.use(helmet());
+app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
+app.use(express.json({ limit: '10kb' }));
+app.use(cookieParser(process.env.COOKIE_SECRET));
+app.use(passport.initialize());
+app.use('/api', apiLimiter);
+
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.use('/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/resumes', resumeRoutes);
+app.use('/api/v1/analyses', analysisRoutes);
+app.use('/api/v1/coverletter', coverLetterRoutes);
+app.use('/api/v1/applications', applicationRoutes);
+
+app.use(errorHandler);
+module.exports = app;
+
+9.4 Frontend Bootstrap Commands
+cd careerlens/frontend
+
+# Install dependencies
+npm install
+
+# Copy and fill environment variables
+cp .env.example .env  # set VITE_API_BASE_URL
+
+# Start Vite dev server
+npm run dev   # opens on http://localhost:5173
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+9.5 src/router/index.jsx (React Router v6)
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { AuthProvider } from '../context/AuthContext';
+import ProtectedRoute from '../components/ui/ProtectedRoute';
+import LandingPage from '../pages/LandingPage';
+import DashboardPage from '../pages/DashboardPage';
+import AnalysisPage from '../pages/AnalysisPage';
+import AuthCallbackPage from '../pages/AuthCallbackPage';
+import SettingsPage from '../pages/SettingsPage';
+
+const router = createBrowserRouter([
+  { path: '/', element: <LandingPage /> },
+  { path: '/auth/callback', element: <AuthCallbackPage /> },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      { path: '/dashboard', element: <DashboardPage /> },
+      { path: '/analyse', element: <AnalysisPage /> },
+      { path: '/settings', element: <SettingsPage /> },
+    ],
+  },
+]);
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  );
+}
+
+9.6 src/api/axios.js (Token Refresh Interceptor)
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  withCredentials: true, // send refresh cookie automatically
+});
+
+let accessToken = null;
+export const setAccessToken = (t) => { accessToken = t; };
+
+api.interceptors.request.use((config) => {
+  if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+  return config;
+});
+
+api.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const original = error.config;
+    if (error.response?.status === 401 && !original._retry) {
+      original._retry = true;
+      try {
+        const { data } = await axios.post(
+          `${import.meta.env.VITE_AUTH_URL}/refresh`,
+          {}, { withCredentials: true }
+        );
+        setAccessToken(data.accessToken);
+        original.headers.Authorization = `Bearer ${data.accessToken}`;
+        return api(original);
+      } catch {
+        setAccessToken(null);
+        window.location.href = '/';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+
+9.7 Quick Start: Full Dev Environment
+# From repo root:
+docker-compose up --build
+
+# Backend: http://localhost:5000
+# Frontend: http://localhost:5173
+# MongoDB: localhost:27017 (careerlens DB)
+
+# Or run separately (no Docker):
+cd backend && npm run dev   # Terminal 1
+cd frontend && npm run dev  # Terminal 2
+
+
+Tip: seed the database with sample data using: npm run seed (creates 1 test user + 3 sample analyses). Script at backend/src/scripts/seed.js
