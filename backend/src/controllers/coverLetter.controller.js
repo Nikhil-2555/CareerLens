@@ -84,4 +84,25 @@ const remove = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Cover letter deleted' });
 });
 
-module.exports = { generate, getAll, getOne, update, remove };
+/**
+ * POST /api/v1/coverletter/generate-direct
+ * Generate cover letter from raw resume text + JD (no analysisId needed)
+ */
+const generateDirect = asyncHandler(async (req, res) => {
+  const { resumeText, jobDescription, jobTitle, company } = req.body;
+
+  if (!resumeText || !jobDescription) {
+    throw ApiError.badRequest('resumeText and jobDescription are required');
+  }
+
+  const content = await generateCoverLetter(
+    resumeText,
+    jobDescription,
+    jobTitle || '',
+    company || ''
+  );
+
+  res.status(200).json({ success: true, data: { content, jobTitle, company } });
+});
+
+module.exports = { generate, generateDirect, getAll, getOne, update, remove };

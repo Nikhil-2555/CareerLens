@@ -83,4 +83,37 @@ const deleteAnalysis = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Analysis deleted' });
 });
 
-module.exports = { createAnalysis, getAnalyses, getAnalysis, deleteAnalysis };
+/**
+ * POST /api/v1/analyses/analyze-direct
+ * Run AI analysis from raw resume text + JD (no resumeId needed).
+ */
+const analyzeDirect = asyncHandler(async (req, res) => {
+  const { resumeText, jobDescription, jobTitle, company } = req.body;
+
+  if (!resumeText || !jobDescription) {
+    throw ApiError.badRequest('resumeText and jobDescription are required');
+  }
+
+  if (resumeText.trim().length < 50) {
+    throw ApiError.badRequest('Resume text is too short. Please provide a complete resume.');
+  }
+
+  // Run AI analysis
+  const result = await analyzeResume(resumeText, jobDescription);
+
+  res.status(200).json({
+    success: true,
+    data: {
+      score: result.score,
+      strengths: result.strengths,
+      gaps: result.gaps,
+      matchedKeywords: result.matchedKeywords,
+      missingKeywords: result.missingKeywords,
+      suggestions: result.suggestions,
+      jobTitle: jobTitle || '',
+      company: company || '',
+    },
+  });
+});
+
+module.exports = { createAnalysis, analyzeDirect, getAnalyses, getAnalysis, deleteAnalysis };

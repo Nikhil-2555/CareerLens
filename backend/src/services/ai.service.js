@@ -1,108 +1,132 @@
 const logger = require('../utils/logger');
 
 /**
- * AI Analysis Service
- * Performs resume-to-JD matching analysis.
- * 
- * NOTE: This uses a smart mock implementation.
- * To use real OpenAI, set OPENAI_API_KEY in .env and uncomment the real implementation.
+ * Helper to call Groq API
  */
+async function callGroqAPI(messages, responseFormat = null) {
+  if (!process.env.GROQ_API_KEY) {
+    throw new Error('GROQ_API_KEY is not set in environment variables');
+  }
+
+  const body = {
+    model: "llama-3.3-70b-versatile",
+    messages: messages,
+    temperature: 0.7,
+  };
+
+  if (responseFormat) {
+    body.response_format = { type: responseFormat };
+  }
+
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.GROQ_API_KEY.trim()}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    logger.error("Groq API error:", errorText);
+    
+    // Try to parse JSON error message from Groq
+    let errorMsg = `Groq API failed with status ${response.status}`;
+    try {
+      const parsed = JSON.parse(errorText);
+      if (parsed.error && parsed.error.message) {
+        errorMsg = parsed.error.message;
+      }
+    } catch (e) {
+      errorMsg = errorText;
+    }
+    
+    throw new Error(`Groq API Error: ${errorMsg}`);
+  }
+  
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
 
 /**
  * Analyze resume text against job description.
  * Returns score, strengths, gaps, matched/missing keywords.
  */
 const analyzeResume = async (resumeText, jobDescription) => {
-  logger.info('Starting AI resume analysis...');
+  logger.info('Starting AI resume analysis with Groq...');
 
-  // Extract keywords from JD
-  const jdKeywords = extractKeywords(jobDescription);
-  const resumeKeywords = extractKeywords(resumeText);
-  
-  const matchedKeywords = jdKeywords.filter(kw => 
-    resumeKeywords.some(rk => rk.toLowerCase().includes(kw.toLowerCase()) || kw.toLowerCase().includes(rk.toLowerCase()))
-  );
-  const missingKeywords = jdKeywords.filter(kw => 
-    !resumeKeywords.some(rk => rk.toLowerCase().includes(kw.toLowerCase()) || kw.toLowerCase().includes(rk.toLowerCase()))
-  );
+  const systemPrompt = `You are an expert ATS (Applicant Tracking System) and technical recruiter. 
+You are evaluating a resume against a job description. 
+Return the output ONLY as a valid JSON object matching this structure:
+{
+  "score": <number between 0 and 100>,
+  "strengths": [<array of 3-5 strings detailing strengths>],
+  "gaps": [<array of 3-5 strings detailing weaknesses or missing skills>],
+  "matchedKeywords": [<array of matched technical/soft skills>],
+  "missingKeywords": [<array of missing technical/soft skills>],
+  "suggestions": [<array of 3-5 actionable improvement suggestions>]
+}`;
 
-  // Calculate score based on keyword matching + length analysis
-  const keywordScore = jdKeywords.length > 0 ? (matchedKeywords.length / jdKeywords.length) * 100 : 50;
-  const lengthBonus = Math.min(resumeText.length / 2000, 1) * 10;
-  const score = Math.min(Math.round(keywordScore * 0.85 + lengthBonus + Math.random() * 8), 100);
+  const userPrompt = `Job Description:\n${jobDescription}\n\nResume:\n${resumeText}\n\nAnalyze the resume against the job description and output JSON.`;
 
-  // Generate strengths based on matched keywords
-  const strengths = matchedKeywords.slice(0, 5).map(kw => 
-    `Strong ${kw} experience aligns with job requirements`
-  );
-  if (resumeText.length > 1500) strengths.push('Comprehensive resume with detailed experience');
-  if (resumeText.match(/\d+%|\d+x|\$\d+/)) strengths.push('Quantified achievements with metrics');
+  try {
+    const content = await callGroqAPI([
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt }
+    ], "json_object");
 
-  // Generate gaps from missing keywords
-  const gaps = missingKeywords.slice(0, 4).map(kw => 
-    `No mention of ${kw} — consider adding relevant experience`
-  );
+    // Robust JSON parsing: clean markdown blocks if AI added them
+    let cleanContent = content.trim();
+    if (cleanContent.startsWith("```json")) {
+      cleanContent = cleanContent.replace(/^```json/, "").replace(/```$/, "").trim();
+    } else if (cleanContent.startsWith("```")) {
+      cleanContent = cleanContent.replace(/^```/, "").replace(/```$/, "").trim();
+    }
 
-  const suggestions = [
-    'Add more quantified achievements with specific metrics',
-    'Tailor your summary section to match the job description',
-    'Include relevant certifications or training',
-  ];
-
-  logger.info(`Analysis complete: Score ${score}/100`);
-
-  return {
-    score,
-    strengths,
-    gaps,
-    matchedKeywords: matchedKeywords.slice(0, 10),
-    missingKeywords: missingKeywords.slice(0, 8),
-    suggestions,
-  };
+    const result = JSON.parse(cleanContent);
+    logger.info(`Analysis complete: Score ${result.score}/100`);
+    return result;
+  } catch (error) {
+    logger.error('Failed to parse Groq response or call API, falling back to basic analysis', error);
+    throw error;
+  }
 };
 
 /**
  * Generate a cover letter based on resume and JD.
  */
 const generateCoverLetter = async (resumeText, jobDescription, jobTitle = '', company = '') => {
-  logger.info(`Generating cover letter for ${jobTitle} at ${company}...`);
+  logger.info(`Generating cover letter for ${jobTitle} at ${company} using Groq...`);
 
-  const resumeKeywords = extractKeywords(resumeText).slice(0, 5);
-  const skillsList = resumeKeywords.join(', ');
+  const systemPrompt = `You are an expert career coach writing a highly tailored, professional, and compelling cover letter.
+The cover letter should be concise (3-4 paragraphs), engaging, and directly connect the candidate's experience in their resume to the requirements in the job description.
+Do not include placeholder brackets like [Your Name] unless you don't have the information. If you don't know the name, just omit the sign-off name.
+Return ONLY the cover letter text, no conversational filler.`;
 
-  const content = `Dear Hiring Manager,
+  const userPrompt = `Target Role: ${jobTitle}
+Target Company: ${company}
 
-I am writing to express my strong interest in the ${jobTitle || 'open'} position${company ? ` at ${company}` : ''}. With my background in ${skillsList}, I am confident in my ability to contribute meaningfully to your team and help drive impactful results.
+Job Description:
+${jobDescription}
 
-In my previous roles, I have developed deep expertise in ${resumeKeywords.slice(0, 3).join(', ')}. I have consistently delivered high-quality work, collaborating with cross-functional teams to ship products that meet both technical requirements and business objectives. My experience aligns closely with the qualifications outlined in your job posting, and I am eager to bring this expertise to your organization.
+Candidate Resume:
+${resumeText}
 
-I am particularly drawn to ${company || 'your company'}'s mission and the opportunity to work on challenging problems alongside a talented team. I would welcome the chance to discuss how my skills and experience can benefit your organization. Thank you for considering my application, and I look forward to hearing from you.
+Write the cover letter.`;
 
-Sincerely,
-[Your Name]`;
+  try {
+    const content = await callGroqAPI([
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt }
+    ]);
 
-  logger.info('Cover letter generated successfully');
-  return content;
+    logger.info('Cover letter generated successfully');
+    return content;
+  } catch (error) {
+    logger.error('Failed to generate cover letter', error);
+    throw error;
+  }
 };
-
-/**
- * Extract relevant keywords from text using simple NLP.
- */
-function extractKeywords(text) {
-  const techKeywords = [
-    'javascript', 'typescript', 'python', 'java', 'react', 'angular', 'vue', 'node',
-    'express', 'mongodb', 'postgresql', 'mysql', 'aws', 'azure', 'gcp', 'docker',
-    'kubernetes', 'ci/cd', 'git', 'agile', 'scrum', 'rest', 'graphql', 'redis',
-    'terraform', 'linux', 'api', 'microservices', 'devops', 'machine learning',
-    'data science', 'html', 'css', 'sass', 'tailwind', 'next.js', 'nest.js',
-    'django', 'flask', 'spring', 'sql', 'nosql', 'elasticsearch', 'kafka',
-    'rabbitmq', 'nginx', 'webpack', 'vite', 'figma', 'jira', 'confluence',
-    'leadership', 'management', 'communication', 'problem-solving', 'teamwork',
-    'project management', 'product management', 'data analysis', 'testing',
-  ];
-
-  const lowerText = text.toLowerCase();
-  return techKeywords.filter(kw => lowerText.includes(kw));
-}
 
 module.exports = { analyzeResume, generateCoverLetter };

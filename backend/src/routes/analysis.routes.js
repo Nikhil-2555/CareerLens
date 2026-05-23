@@ -1,8 +1,12 @@
 const router = require('express').Router();
-const { createAnalysis, getAnalyses, getAnalysis, deleteAnalysis } = require('../controllers/analysis.controller');
-const { verifyAccessToken } = require('../middleware/auth');
+const { createAnalysis, analyzeDirect, getAnalyses, getAnalysis, deleteAnalysis } = require('../controllers/analysis.controller');
+const { verifyAccessToken, optionalAuth } = require('../middleware/auth');
 const { aiLimiter } = require('../middleware/rateLimiter');
 
+// Public-ish route (works with or without auth)
+router.post('/analyze-direct', optionalAuth, aiLimiter, analyzeDirect);
+
+// Protected routes
 router.use(verifyAccessToken);
 
 router.post('/', aiLimiter, createAnalysis);

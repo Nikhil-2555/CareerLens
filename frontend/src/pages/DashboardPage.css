@@ -28,11 +28,183 @@
 .dash__kanban-card:hover { transform: translateY(-2px); border-color: var(--cl-primary); box-shadow: 0 0 12px rgba(108,92,231,0.15); }
 .dash__kanban-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .dash__kanban-card-company { font-weight: 700; font-size: 0.9rem; color: var(--cl-on-surface); }
-.dash__kanban-card-menu { background: none; border: none; color: var(--cl-on-surface-variant); cursor: pointer; padding: 2px; }
+.dash__kanban-card-menu-wrapper { position: relative; }
+.dash__kanban-card-menu { background: none; border: none; color: var(--cl-on-surface-variant); cursor: pointer; padding: 4px; border-radius: var(--radius-sm); transition: all var(--transition-fast); }
+.dash__kanban-card-menu:hover { background: var(--cl-surface-container-high); color: var(--cl-on-surface); }
 .dash__kanban-card-role { display: block; font-size: 0.8rem; color: var(--cl-on-surface-variant); margin-bottom: var(--space-sm); }
 .dash__kanban-card-bottom { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: 6px; }
 .dash__kanban-card-tag { font-size: 0.7rem; color: var(--cl-on-surface-variant); background: var(--cl-surface-container-high); padding: 2px 8px; border-radius: var(--radius-full); }
 .dash__kanban-card-date { font-size: 0.7rem; color: var(--cl-outline); }
+
+/* ─── Card Context Menu Dropdown ─── */
+.dash__card-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 100;
+  min-width: 180px;
+  background: var(--cl-surface-container-high);
+  border: 1px solid var(--cl-outline-variant);
+  border-radius: var(--radius-lg);
+  padding: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  animation: fadeInUp 0.15s ease;
+}
+.dash__card-menu-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--cl-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 10px 4px;
+}
+.dash__card-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  color: var(--cl-on-surface);
+  font-size: 0.82rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.dash__card-menu-item:hover {
+  background: var(--cl-surface-container);
+}
+.dash__card-menu-item--danger { color: var(--cl-error); }
+.dash__card-menu-item--danger:hover { background: rgba(239, 68, 68, 0.1); }
+.dash__card-menu-dot { width: 8px; height: 8px; border-radius: 50%; margin-left: auto; }
+.dash__card-menu-divider {
+  height: 1px;
+  background: var(--cl-outline-variant);
+  margin: 4px 6px;
+}
+
+/* ─── Modal ─── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  animation: fadeIn 0.2s ease;
+}
+.modal-content {
+  width: 90%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--space-xl);
+  border-radius: var(--radius-xl);
+  animation: fadeInUp 0.25s ease;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-lg);
+}
+.modal-header h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--cl-on-surface);
+}
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--cl-on-surface-variant);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+.modal-close:hover { color: var(--cl-on-surface); background: var(--cl-surface-container-high); }
+
+.modal-error {
+  color: #ff4d4f;
+  margin-bottom: var(--space-md);
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  background: rgba(255, 77, 79, 0.1);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 77, 79, 0.2);
+}
+
+.modal-form { display: flex; flex-direction: column; gap: var(--space-md); }
+.modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+.modal-field { display: flex; flex-direction: column; gap: 6px; }
+.modal-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--cl-on-surface-variant);
+}
+.modal-field input,
+.modal-field textarea,
+.modal-field select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--cl-surface-container);
+  border: 1px solid var(--cl-outline-variant);
+  color: var(--cl-on-surface);
+  font-size: 0.88rem;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+  outline: none;
+}
+.modal-field input:focus,
+.modal-field textarea:focus,
+.modal-field select:focus {
+  border-color: var(--cl-primary);
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.15);
+}
+.modal-field textarea { resize: vertical; }
+.modal-select-wrapper {
+  position: relative;
+}
+.modal-select-wrapper select {
+  appearance: none;
+  padding-right: 36px;
+  cursor: pointer;
+}
+.modal-select-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--cl-on-surface-variant);
+  pointer-events: none;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+/* ─── Secondary Button ─── */
+.btn-secondary {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  background: var(--cl-surface-container-high);
+  border: 1px solid var(--cl-outline-variant);
+  color: var(--cl-on-surface);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.btn-secondary:hover {
+  background: var(--cl-surface-container);
+  border-color: var(--cl-on-surface-variant);
+}
 
 /* Activity */
 .dash__activity { padding: var(--space-lg); position: sticky; top: 80px; }
@@ -46,6 +218,12 @@
 .dash__activity-text { display: block; font-size: 0.85rem; color: var(--cl-on-surface); line-height: 1.4; }
 .dash__activity-time { font-size: 0.75rem; color: var(--cl-outline); }
 
+/* ─── Animations ─── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @media (max-width: 1200px) {
   .dash__metrics { grid-template-columns: repeat(2, 1fr); }
   .dash__body { grid-template-columns: 1fr; }
@@ -54,4 +232,5 @@
   .dash__metrics { grid-template-columns: 1fr; }
   .dash__kanban { flex-direction: column; }
   .dash__kanban-col { min-width: 100%; }
+  .modal-row { grid-template-columns: 1fr; }
 }
