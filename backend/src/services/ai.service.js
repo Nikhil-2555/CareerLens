@@ -58,34 +58,38 @@ const analyzeResume = async (resumeText, jobDescription) => {
 
   const systemPrompt = `You are an expert ATS (Applicant Tracking System) and technical recruiter. 
 You are evaluating a resume against a job description. 
-Return the output ONLY as a valid JSON object matching this structure:
+You MUST output ONLY a valid JSON object. Do not include any explanations, markdown formatting, or \`\`\`json wrappers.
+The JSON object MUST match this exact structure:
 {
   "score": <number between 0 and 100>,
-  "atsScore": <number between 0 and 100 representing ATS parsing compatibility based on format>,
-  "strengths": [<array of 3-5 strings detailing strengths>],
-  "gaps": [<array of 3-5 strings detailing weaknesses or missing skills>],
-  "matchedKeywords": [<array of matched technical/soft skills>],
-  "missingKeywords": [<array of missing technical/soft skills>],
-  "suggestions": [<array of 3-5 actionable improvement suggestions>],
-  "badFormatting": [<array of formatting issues like 'Tables', 'Multi-column layout'>],
-  "atsRecommendations": [<array of fixes for format like 'Use simple layout'>]
+  "atsScore": <number between 0 and 100>,
+  "strengths": ["<strength 1>", "<strength 2>"],
+  "gaps": ["<gap 1>", "<gap 2>"],
+  "matchedKeywords": ["<keyword 1>"],
+  "missingKeywords": ["<keyword 1>"],
+  "suggestions": ["<suggestion 1>"],
+  "badFormatting": ["<issue 1>"],
+  "atsRecommendations": ["<fix 1>"]
 }`;
 
-  const userPrompt = `Job Description:\n${jobDescription}\n\nResume:\n${resumeText}\n\nAnalyze the resume against the job description and output JSON.`;
+  const userPrompt = `Job Description:\n${jobDescription}\n\nResume:\n${resumeText}\n\nAnalyze the resume against the job description and output ONLY valid JSON.`;
 
   try {
     const content = await callGroqAPI([
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
-    ], "json_object");
+    ]);
 
-    // Robust JSON parsing: clean markdown blocks if AI added them
-    let cleanContent = content.trim();
-    if (cleanContent.startsWith("```json")) {
-      cleanContent = cleanContent.replace(/^```json/, "").replace(/```$/, "").trim();
-    } else if (cleanContent.startsWith("```")) {
-      cleanContent = cleanContent.replace(/^```/, "").replace(/```$/, "").trim();
+    // Bulletproof JSON extraction
+    let cleanContent = content;
+    const startIndex = cleanContent.indexOf('{');
+    const endIndex = cleanContent.lastIndexOf('}');
+    if (startIndex !== -1 && endIndex !== -1) {
+      cleanContent = cleanContent.substring(startIndex, endIndex + 1);
     }
+
+    // Fix "Bad control character" by stripping actual newlines/tabs
+    cleanContent = cleanContent.replace(/[\n\r\t]/g, ' ');
 
     const result = JSON.parse(cleanContent);
     logger.info(`Analysis complete: Score ${result.score}/100`);
@@ -145,11 +149,14 @@ Your task is to:
 1. Identify weak bullet points in the resume and rewrite them to be high-impact, using strong action verbs and hypothetical quantifiable metrics/results (e.g. "Worked on backend APIs" -> "Designed and scaled robust REST APIs, reducing database query latencies by 30%").
 2. Integrate missing critical keywords from the Job Description organically.
 3. Clean up formatting issues.
-4. Output the fully optimized resume in clean Markdown format.
+4. Output the fully optimized resume as a highly professional HTML layout. Use clean inline CSS. Include a sleek header for the candidate's name/contact. Ensure clear section dividers (border-bottom), distinct date alignments, and polished spacing. Make it look like a premium ATS-friendly modern resume.
+5. Provide a realistic 'newScore' (0-100) reflecting how well this new resume matches the JD (should be 90+).
 
-Return the output ONLY as a valid JSON object matching this structure:
+You MUST output ONLY a valid JSON object. Do not include any explanations, markdown formatting, or \`\`\`json wrappers.
+The JSON object MUST match this exact structure:
 {
-  "optimizedResume": "<the full optimized resume text in markdown format>",
+  "optimizedResumeHTML": "<the full HTML styled resume>",
+  "newScore": <number between 90 and 100>,
   "bulletDiffs": [
     {
       "before": "<original weak bullet point or section>",
@@ -158,20 +165,24 @@ Return the output ONLY as a valid JSON object matching this structure:
   ]
 }`;
 
-  const userPrompt = `Job Description:\n${jobDescription}\n\nResume:\n${resumeText}\n\nOptimize the resume and output JSON.`;
+  const userPrompt = `Job Description:\n${jobDescription}\n\nResume:\n${resumeText}\n\nOptimize the resume and output ONLY valid JSON.`;
 
   try {
     const content = await callGroqAPI([
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
-    ], "json_object");
+    ]);
 
-    let cleanContent = content.trim();
-    if (cleanContent.startsWith("```json")) {
-      cleanContent = cleanContent.replace(/^```json/, "").replace(/```$/, "").trim();
-    } else if (cleanContent.startsWith("```")) {
-      cleanContent = cleanContent.replace(/^```/, "").replace(/```$/, "").trim();
+    // Bulletproof JSON extraction
+    let cleanContent = content;
+    const startIndex = cleanContent.indexOf('{');
+    const endIndex = cleanContent.lastIndexOf('}');
+    if (startIndex !== -1 && endIndex !== -1) {
+      cleanContent = cleanContent.substring(startIndex, endIndex + 1);
     }
+
+    // Fix "Bad control character" by stripping actual newlines/tabs
+    cleanContent = cleanContent.replace(/[\n\r\t]/g, ' ');
 
     const result = JSON.parse(cleanContent);
     logger.info(`Optimization complete: Generated ${result.bulletDiffs?.length || 0} bullet improvements`);
@@ -207,11 +218,18 @@ Return the output ONLY as a valid JSON object matching this structure:
     const content = await callGroqAPI([
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
-    ], "json_object");
+    ]);
     
-    let cleanContent = content.trim();
-    if (cleanContent.startsWith("```json")) cleanContent = cleanContent.replace(/^```json/, "").replace(/```$/, "").trim();
-    else if (cleanContent.startsWith("```")) cleanContent = cleanContent.replace(/^```/, "").replace(/```$/, "").trim();
+    // Bulletproof JSON extraction
+    let cleanContent = content;
+    const startIndex = cleanContent.indexOf('{');
+    const endIndex = cleanContent.lastIndexOf('}');
+    if (startIndex !== -1 && endIndex !== -1) {
+      cleanContent = cleanContent.substring(startIndex, endIndex + 1);
+    }
+
+    // Fix "Bad control character" by stripping actual newlines/tabs
+    cleanContent = cleanContent.replace(/[\n\r\t]/g, ' ');
 
     return JSON.parse(cleanContent);
   } catch (error) {

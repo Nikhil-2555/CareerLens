@@ -154,15 +154,21 @@ export default function AnalysisPage() {
         <head>
           <title>Optimized Resume</title>
           <style>
-            body { font-family: 'Arial', sans-serif; line-height: 1.6; padding: 40px; color: #333; max-width: 800px; margin: 0 auto; }
-            h1, h2, h3 { color: #111; margin-top: 20px; }
-            ul { margin-bottom: 20px; }
-            li { margin-bottom: 8px; }
-            pre { font-family: inherit; white-space: pre-wrap; word-wrap: break-word; font-size: 14px; }
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.5; padding: 40px; color: #222; max-width: 850px; margin: 0 auto; }
+            * { box-sizing: border-box; }
+            h1, h2, h3, h4 { margin-top: 24px; margin-bottom: 8px; color: #111; }
+            h1 { font-size: 24px; border-bottom: 2px solid #333; padding-bottom: 4px; }
+            h2 { font-size: 18px; border-bottom: 1px solid #ddd; padding-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+            h3 { font-size: 16px; font-weight: bold; }
+            p { margin-bottom: 8px; font-size: 14px; }
+            ul { margin-bottom: 16px; padding-left: 20px; }
+            li { margin-bottom: 6px; font-size: 14px; }
           </style>
         </head>
         <body>
-          <pre>${optimizedData.optimizedResume}</pre>
+          <div class="resume-container">
+            ${optimizedData.optimizedResumeHTML || optimizedData.optimizedResume}
+          </div>
           <script>
             window.onload = function() {
               window.print();
@@ -392,7 +398,21 @@ export default function AnalysisPage() {
               </div>
 
               {optimizedData && (
-                <div className="analysis__section glass-card section-optimized" style={{ marginTop: 'var(--space-md)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="analysis__section glass-card section-optimized" style={{ marginTop: 'var(--space-md)', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  
+                  {optimizedData.newScore && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: 'linear-gradient(135deg, rgba(108, 92, 231, 0.15), rgba(108, 92, 231, 0.05))', borderRadius: 'var(--radius-lg)', border: '1px solid var(--cl-primary-light)' }}>
+                      <div>
+                        <h3 style={{ margin: 0, color: 'var(--cl-primary-light)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}><Sparkles size={20} /> Optimization Successful!</h3>
+                        <p style={{ margin: '4px 0 0 0', color: 'var(--cl-on-surface-variant)', fontSize: '0.9rem' }}>Your resume has been rewritten to perfectly match the job description.</p>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '2.5rem', fontWeight: '800', color: 'var(--cl-secondary)', lineHeight: '1' }}>{optimizedData.newScore}<span style={{ fontSize: '1rem', color: 'var(--cl-on-surface-variant)' }}>/100</span></div>
+                        <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--cl-secondary-light)', fontWeight: '700', marginTop: '4px' }}>New Projected Score</div>
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <h3 className="analysis__section-title"><Sparkles size={18} style={{ color: 'var(--cl-warning)' }} /> Optimized Bullets</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -407,9 +427,10 @@ export default function AnalysisPage() {
 
                   <div>
                     <h3 className="analysis__section-title"><FileText size={18} style={{ color: 'var(--cl-primary-light)' }} /> Full Optimized Resume</h3>
-                    <div style={{ background: 'var(--cl-surface-container)', padding: '16px', borderRadius: '8px', maxHeight: '300px', overflowY: 'auto', marginBottom: '16px', fontSize: '0.85rem', fontFamily: 'monospace', whiteSpace: 'pre-wrap', color: 'var(--cl-on-surface-variant)' }}>
-                      {optimizedData.optimizedResume}
-                    </div>
+                    <div 
+                      style={{ background: 'var(--cl-surface-container)', padding: '24px', borderRadius: '8px', maxHeight: '500px', overflowY: 'auto', marginBottom: '16px', color: 'var(--cl-on-surface-variant)' }}
+                      dangerouslySetInnerHTML={{ __html: optimizedData.optimizedResumeHTML || optimizedData.optimizedResume }}
+                    />
                   </div>
 
                   <button className="btn-primary" style={{ width: '100%', padding: '12px' }} onClick={handleDownloadPDF}>
