@@ -199,6 +199,8 @@ export default function DashboardPage() {
   const [isBackendConnected, setIsBackendConnected] = useState(false)
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  const user = JSON.parse(localStorage.getItem('user') || '{"name":"User"}')
+  const firstName = user.name.split(' ')[0]
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('accessToken')
@@ -318,7 +320,7 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <TopBar title="Good Morning, John 👋" subtitle={today} />
+      <TopBar title={`Good Morning, ${firstName} 👋`} subtitle={today} />
       <div className="dash__content">
         {/* Metrics */}
         <div className="dash__metrics">

@@ -12,21 +12,6 @@ const REFRESH_COOKIE_OPTIONS = {
 };
 
 /**
- * Google OAuth callback handler.
- * Passport has already authenticated and attached req.user.
- */
-const googleCallback = asyncHandler(async (req, res) => {
-  const user = req.user;
-  const { accessToken, refreshToken } = await issueTokenPair(user);
-
-  // Set refresh token as HTTP-only cookie
-  res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
-
-  // Redirect to frontend with access token
-  res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${accessToken}`);
-});
-
-/**
  * POST /auth/refresh
  * Rotate refresh token and issue new pair.
  */
@@ -160,4 +145,4 @@ const login = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { googleCallback, refreshTokens, logout, getMe, register, login };
+module.exports = { refreshTokens, logout, getMe, register, login };

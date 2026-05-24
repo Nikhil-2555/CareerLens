@@ -61,11 +61,14 @@ You are evaluating a resume against a job description.
 Return the output ONLY as a valid JSON object matching this structure:
 {
   "score": <number between 0 and 100>,
+  "atsScore": <number between 0 and 100 representing ATS parsing compatibility based on format>,
   "strengths": [<array of 3-5 strings detailing strengths>],
   "gaps": [<array of 3-5 strings detailing weaknesses or missing skills>],
   "matchedKeywords": [<array of matched technical/soft skills>],
   "missingKeywords": [<array of missing technical/soft skills>],
-  "suggestions": [<array of 3-5 actionable improvement suggestions>]
+  "suggestions": [<array of 3-5 actionable improvement suggestions>],
+  "badFormatting": [<array of formatting issues like 'Tables', 'Multi-column layout'>],
+  "atsRecommendations": [<array of fixes for format like 'Use simple layout'>]
 }`;
 
   const userPrompt = `Job Description:\n${jobDescription}\n\nResume:\n${resumeText}\n\nAnalyze the resume against the job description and output JSON.`;
@@ -129,4 +132,92 @@ Write the cover letter.`;
   }
 };
 
-module.exports = { analyzeResume, generateCoverLetter };
+/**
+ * Optimize resume bullet points and format.
+ * Returns the optimized full resume text and a list of bullet point diffs.
+ */
+const optimizeResume = async (resumeText, jobDescription) => {
+  logger.info('Starting AI resume optimization using Groq...');
+
+  const systemPrompt = `You are an expert career coach and professional resume writer.
+You are optimizing a candidate's resume to match a specific Job Description.
+Your task is to:
+1. Identify weak bullet points in the resume and rewrite them to be high-impact, using strong action verbs and hypothetical quantifiable metrics/results (e.g. "Worked on backend APIs" -> "Designed and scaled robust REST APIs, reducing database query latencies by 30%").
+2. Integrate missing critical keywords from the Job Description organically.
+3. Clean up formatting issues.
+4. Output the fully optimized resume in clean Markdown format.
+
+Return the output ONLY as a valid JSON object matching this structure:
+{
+  "optimizedResume": "<the full optimized resume text in markdown format>",
+  "bulletDiffs": [
+    {
+      "before": "<original weak bullet point or section>",
+      "after": "<rewritten high-impact bullet point or section>"
+    }
+  ]
+}`;
+
+  const userPrompt = `Job Description:\n${jobDescription}\n\nResume:\n${resumeText}\n\nOptimize the resume and output JSON.`;
+
+  try {
+    const content = await callGroqAPI([
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt }
+    ], "json_object");
+
+    let cleanContent = content.trim();
+    if (cleanContent.startsWith("```json")) {
+      cleanContent = cleanContent.replace(/^```json/, "").replace(/```$/, "").trim();
+    } else if (cleanContent.startsWith("```")) {
+      cleanContent = cleanContent.replace(/^```/, "").replace(/```$/, "").trim();
+    }
+
+    const result = JSON.parse(cleanContent);
+    logger.info(`Optimization complete: Generated ${result.bulletDiffs?.length || 0} bullet improvements`);
+    return result;
+  } catch (error) {
+    logger.error('Failed to optimize resume via AI', error);
+    throw error;
+  }
+};
+
+const matchJobs = async (resumeText) => {
+  logger.info('Starting AI job matching using Groq...');
+  const systemPrompt = `You are an expert technical recruiter and career counselor.
+Analyze the provided resume and identify the top 3 to 5 job titles that best match the candidate's skills, experience, and trajectory.
+For each job title, provide a realistic match score (0-100) representing how qualified they are for that role.
+Also suggest a few keywords they should learn or add to strengthen their profile for that role.
+
+Return the output ONLY as a valid JSON object matching this structure:
+{
+  "matches": [
+    {
+      "title": "<Job Title>",
+      "matchScore": <Number>,
+      "reason": "<One sentence explaining why they are a fit>",
+      "recommendedKeywords": ["<Keyword 1>", "<Keyword 2>"]
+    }
+  ]
+}`;
+
+  const userPrompt = `Resume:\n${resumeText}\n\nSuggest matching jobs.`;
+
+  try {
+    const content = await callGroqAPI([
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt }
+    ], "json_object");
+    
+    let cleanContent = content.trim();
+    if (cleanContent.startsWith("```json")) cleanContent = cleanContent.replace(/^```json/, "").replace(/```$/, "").trim();
+    else if (cleanContent.startsWith("```")) cleanContent = cleanContent.replace(/^```/, "").replace(/```$/, "").trim();
+
+    return JSON.parse(cleanContent);
+  } catch (error) {
+    logger.error('Failed to match jobs via AI', error);
+    throw error;
+  }
+};
+
+module.exports = { analyzeResume, generateCoverLetter, optimizeResume, matchJobs };

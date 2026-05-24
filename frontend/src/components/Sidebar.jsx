@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   Search,
@@ -15,7 +15,7 @@ import './Sidebar.css'
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/analyse', label: 'Analyze Resume', icon: Search },
-  { path: '/dashboard', label: 'Applications', icon: Briefcase },
+  { path: '/job-matcher', label: 'Job Matcher', icon: Briefcase },
   { path: '/coverletter', label: 'Cover Letters', icon: FileText },
   { path: '/settings', label: 'Settings', icon: Settings },
 ]
@@ -23,6 +23,16 @@ const navItems = [
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+
+  const user = JSON.parse(localStorage.getItem('user') || '{"name":"User", "email":"user@example.com"}')
+  const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+
+  const handleLogout = () => {
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('user')
+    navigate('/login')
+  }
 
   return (
     <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
@@ -60,15 +70,15 @@ export default function Sidebar() {
 
       <div className="sidebar__footer">
         <div className="sidebar__user">
-          <div className="sidebar__avatar">JD</div>
+          <div className="sidebar__avatar">{initials}</div>
           {!collapsed && (
             <div className="sidebar__user-info">
-              <span className="sidebar__user-name">John Doe</span>
-              <span className="sidebar__user-email">john@gmail.com</span>
+              <span className="sidebar__user-name">{user.name}</span>
+              <span className="sidebar__user-email">{user.email}</span>
             </div>
           )}
         </div>
-        <button className="sidebar__link sidebar__logout" title="Logout">
+        <button className="sidebar__link sidebar__logout" title="Logout" onClick={handleLogout}>
           <LogOut size={20} />
           {!collapsed && <span>Logout</span>}
         </button>

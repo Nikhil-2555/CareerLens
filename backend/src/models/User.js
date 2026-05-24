@@ -3,12 +3,6 @@ const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(
   {
-    googleId: {
-      type: String,
-      unique: true,
-      sparse: true,
-      index: true,
-    },
     email: {
       type: String,
       required: [true, 'Email is required'],
@@ -32,8 +26,8 @@ const userSchema = new mongoose.Schema(
     },
     provider: {
       type: String,
-      enum: ['google', 'local'],
-      default: 'google',
+      enum: ['local'],
+      default: 'local',
     },
     refreshTokens: [{
       token: String,

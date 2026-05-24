@@ -79,6 +79,28 @@
   --sidebar-width: 260px;
 }
 
+:root.light-mode {
+  --cl-bg: #F8F9FA;
+  --cl-surface: #FFFFFF;
+  --cl-surface-dim: #F1F3F5;
+  --cl-surface-bright: #FFFFFF;
+  --cl-surface-container: #FFFFFF;
+  --cl-surface-container-high: #E9ECEF;
+  --cl-surface-container-highest: #DEE2E6;
+  --cl-surface-container-low: #F8F9FA;
+
+  --cl-on-surface: #212529;
+  --cl-on-surface-variant: #495057;
+  --cl-on-bg: #212529;
+
+  --cl-outline: #ADB5BD;
+  --cl-outline-variant: #CED4DA;
+  --cl-border-tint: rgba(108, 92, 231, 0.1);
+
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg-strong: rgba(255, 255, 255, 0.9);
+}
+
 /* ── Reset ── */
 *, *::before, *::after {
   margin: 0;

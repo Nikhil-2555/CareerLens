@@ -46,6 +46,17 @@ const analysisSchema = new mongoose.Schema(
     suggestions: [{
       type: String,
     }],
+    atsScore: {
+      type: Number,
+      min: 0,
+      max: 100,
+    },
+    badFormatting: [{
+      type: String,
+    }],
+    atsRecommendations: [{
+      type: String,
+    }],
     rawAiResponse: {
       type: mongoose.Schema.Types.Mixed,
     },

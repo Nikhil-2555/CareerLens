@@ -3,11 +3,6 @@ const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
-const passport = require('passport');
-
-// Load passport strategies
-require('./config/passport');
-
 // Import routes
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
@@ -44,9 +39,6 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
-
-// ─── Passport ───
-app.use(passport.initialize());
 
 // ─── Rate limiting ───
 app.use('/api', apiLimiter);

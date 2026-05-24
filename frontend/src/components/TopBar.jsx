@@ -2,6 +2,9 @@ import { Bell, Search } from 'lucide-react'
 import './TopBar.css'
 
 export default function TopBar({ title, subtitle }) {
+  const user = JSON.parse(localStorage.getItem('user') || '{"name":"User"}')
+  const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+
   return (
     <header className="topbar">
       <div className="topbar__left">
@@ -18,7 +21,7 @@ export default function TopBar({ title, subtitle }) {
           <span className="topbar__notification-dot"></span>
         </button>
         <div className="topbar__profile">
-          <div className="topbar__avatar">JD</div>
+          <div className="topbar__avatar">{initials}</div>
         </div>
       </div>
     </header>

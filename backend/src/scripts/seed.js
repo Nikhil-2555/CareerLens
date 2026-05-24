@@ -53,11 +53,11 @@ async function seed() {
 
     // Create test user
     const user = await User.create({
-      googleId: 'seed_test_user_001',
       email: 'john.doe@gmail.com',
+      password: 'password123',
       name: 'John Doe',
       avatar: '',
-      provider: 'google',
+      provider: 'local',
     });
     logger.info(`Created user: ${user.email}`);
 

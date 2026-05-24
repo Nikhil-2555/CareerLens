@@ -5,6 +5,7 @@ import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import AnalysisPage from './pages/AnalysisPage'
 import CoverLetterPage from './pages/CoverLetterPage'
+import JobMatcherPage from './pages/JobMatcherPage'
 import SettingsPage from './pages/SettingsPage'
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/analyse" element={<AnalysisPage />} />
+      <Route path="/job-matcher" element={<JobMatcherPage />} />
       <Route path="/coverletter" element={<CoverLetterPage />} />
       <Route path="/settings" element={<SettingsPage />} />
     </Routes>

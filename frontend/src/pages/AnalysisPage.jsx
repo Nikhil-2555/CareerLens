@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardLayout from '../components/DashboardLayout'
 import TopBar from '../components/TopBar'
-import { Upload, FileText, Sparkles, CheckCircle2, AlertTriangle, X, Loader2, Lightbulb } from 'lucide-react'
+import { Upload, FileText, Sparkles, CheckCircle2, AlertTriangle, X, Loader2, Lightbulb, Download } from 'lucide-react'
 import './AnalysisPage.css'
 
 const API_BASE = 'http://localhost:5000'
@@ -16,6 +16,8 @@ export default function AnalysisPage() {
   const [results, setResults] = useState(null)
   const [error, setError] = useState('')
   const [dragOver, setDragOver] = useState(false)
+  const [optimizing, setOptimizing] = useState(false)
+  const [optimizedData, setOptimizedData] = useState(null)
   const fileInputRef = useRef(null)
   const navigate = useNavigate()
 
@@ -101,6 +103,9 @@ export default function AnalysisPage() {
         matched: data.data.matchedKeywords || [],
         missing: data.data.missingKeywords || [],
         suggestions: data.data.suggestions || [],
+        atsScore: data.data.atsScore,
+        badFormatting: data.data.badFormatting || [],
+        atsRecommendations: data.data.atsRecommendations || [],
       })
     } catch (err) {
       setError(`Analysis failed: ${err.message}`)
@@ -115,6 +120,61 @@ export default function AnalysisPage() {
     navigate('/coverletter')
   }
 
+  // ─── Optimize Resume (One-Click Rewrite) ───
+  const handleOptimize = async () => {
+    if (!resumeText.trim() || !jd.trim()) return
+    setOptimizing(true)
+    setError('')
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/analyses/optimize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
+        body: JSON.stringify({
+          resumeText: resumeText.trim(),
+          jobDescription: jd.trim(),
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error?.message || 'Optimization failed')
+      setOptimizedData(data.data)
+    } catch (err) {
+      setError(`Optimization failed: ${err.message}`)
+    } finally {
+      setOptimizing(false)
+    }
+  }
+
+  const handleDownloadPDF = () => {
+    if (!optimizedData) return
+    const printWindow = window.open('', '_blank')
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Optimized Resume</title>
+          <style>
+            body { font-family: 'Arial', sans-serif; line-height: 1.6; padding: 40px; color: #333; max-width: 800px; margin: 0 auto; }
+            h1, h2, h3 { color: #111; margin-top: 20px; }
+            ul { margin-bottom: 20px; }
+            li { margin-bottom: 8px; }
+            pre { font-family: inherit; white-space: pre-wrap; word-wrap: break-word; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <pre>${optimizedData.optimizedResume}</pre>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            }
+          </script>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+  }
+
   const scoreColor = results ? (results.score >= 85 ? 'var(--cl-secondary)' : results.score >= 70 ? 'var(--cl-warning)' : 'var(--cl-error)') : 'var(--cl-primary)'
   const scoreLabel = results ? (results.score >= 85 ? 'Excellent Match!' : results.score >= 70 ? 'Good Match' : results.score >= 50 ? 'Needs Improvement' : 'Poor Match') : ''
   const dashOffset = results ? 283 - (283 * results.score) / 100 : 283
@@ -122,7 +182,7 @@ export default function AnalysisPage() {
   return (
     <DashboardLayout>
       <TopBar title="Resume Analysis" subtitle="Upload your resume and paste a job description for AI analysis" />
-      <div className="analysis__content">
+      <div className={`analysis__content ${results ? 'analysis__content--has-results' : ''}`}>
         {/* Left: Inputs */}
         <div className="analysis__left">
           {/* Error */}
@@ -200,26 +260,47 @@ export default function AnalysisPage() {
 
           {results && !analyzing && (
             <div className="analysis__results animate-fade-in">
-              {/* Score */}
-              <div className="analysis__score-card glass-card">
-                <div className="analysis__score-ring">
-                  <svg viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="45" fill="none" stroke="var(--cl-outline-variant)" strokeWidth="5" opacity="0.2" />
-                    <circle cx="50" cy="50" r="45" fill="none" stroke={scoreColor} strokeWidth="5" strokeLinecap="round"
-                      strokeDasharray="283" strokeDashoffset={dashOffset} transform="rotate(-90 50 50)"
-                      style={{ transition: 'stroke-dashoffset 1.5s ease' }} />
-                  </svg>
-                  <div className="analysis__score-text">
-                    <span className="analysis__score-num">{results.score}</span>
-                    <span className="analysis__score-of">/100</span>
+              <div className="analysis__scores-container section-scores">
+                {/* Score */}
+                <div className="analysis__score-card glass-card">
+                  <div className="analysis__score-ring">
+                    <svg viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="45" fill="none" stroke="var(--cl-outline-variant)" strokeWidth="5" opacity="0.2" />
+                      <circle cx="50" cy="50" r="45" fill="none" stroke={scoreColor} strokeWidth="5" strokeLinecap="round"
+                        strokeDasharray="283" strokeDashoffset={dashOffset} transform="rotate(-90 50 50)"
+                        style={{ transition: 'stroke-dashoffset 1.5s ease' }} />
+                    </svg>
+                    <div className="analysis__score-text">
+                      <span className="analysis__score-num">{results.score}</span>
+                      <span className="analysis__score-of">/100</span>
+                    </div>
                   </div>
+                  <span className="analysis__score-label" style={{ color: scoreColor }}>{scoreLabel}</span>
                 </div>
-                <span className="analysis__score-label" style={{ color: scoreColor }}>{scoreLabel}</span>
+
+                {/* ATS Score */}
+                {results.atsScore !== undefined && (
+                  <div className="analysis__score-card glass-card">
+                    <div className="analysis__score-ring">
+                      <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="var(--cl-outline-variant)" strokeWidth="5" opacity="0.2" />
+                        <circle cx="50" cy="50" r="45" fill="none" stroke={results.atsScore >= 80 ? 'var(--cl-secondary)' : results.atsScore >= 60 ? 'var(--cl-warning)' : 'var(--cl-error)'} strokeWidth="5" strokeLinecap="round"
+                          strokeDasharray="283" strokeDashoffset={283 - (283 * results.atsScore) / 100} transform="rotate(-90 50 50)"
+                          style={{ transition: 'stroke-dashoffset 1.5s ease' }} />
+                      </svg>
+                      <div className="analysis__score-text">
+                        <span className="analysis__score-num">{results.atsScore}</span>
+                        <span className="analysis__score-of">/100</span>
+                      </div>
+                    </div>
+                    <span className="analysis__score-label" style={{ color: results.atsScore >= 80 ? 'var(--cl-secondary)' : results.atsScore >= 60 ? 'var(--cl-warning)' : 'var(--cl-error)' }}>ATS Compatibility</span>
+                  </div>
+                )}
               </div>
 
               {/* Strengths */}
               {results.strengths.length > 0 && (
-                <div className="analysis__section glass-card">
+                <div className="analysis__section glass-card section-strengths">
                   <h3 className="analysis__section-title"><CheckCircle2 size={18} style={{ color: 'var(--cl-secondary)' }} /> Strengths</h3>
                   <ul className="analysis__list">
                     {results.strengths.map((s, i) => (
@@ -231,7 +312,7 @@ export default function AnalysisPage() {
 
               {/* Gaps */}
               {results.gaps.length > 0 && (
-                <div className="analysis__section glass-card">
+                <div className="analysis__section glass-card section-gaps">
                   <h3 className="analysis__section-title"><AlertTriangle size={18} style={{ color: 'var(--cl-warning)' }} /> Gaps to Address</h3>
                   <ul className="analysis__list">
                     {results.gaps.map((g, i) => (
@@ -241,8 +322,37 @@ export default function AnalysisPage() {
                 </div>
               )}
 
+              {/* ATS Formatting Scanner */}
+              {(results.badFormatting.length > 0 || results.atsRecommendations.length > 0) && (
+                <div className="analysis__section glass-card section-ats" style={{ borderLeft: '4px solid var(--cl-primary)' }}>
+                  <h3 className="analysis__section-title"><FileText size={18} style={{ color: 'var(--cl-primary-light)' }} /> ATS Formatting Analysis</h3>
+                  
+                  {results.badFormatting.length > 0 && (
+                    <div style={{ marginBottom: '16px' }}>
+                      <span className="analysis__keyword-label" style={{ color: 'var(--cl-error)' }}>❌ Bad Formatting Detected</span>
+                      <ul className="analysis__list">
+                        {results.badFormatting.map((g, i) => (
+                          <li key={i} className="analysis__list-item analysis__list-item--error"><X size={14} /> {g}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {results.atsRecommendations.length > 0 && (
+                    <div>
+                      <span className="analysis__keyword-label" style={{ color: 'var(--cl-secondary)' }}>✅ Recommendations</span>
+                      <ul className="analysis__list">
+                        {results.atsRecommendations.map((g, i) => (
+                          <li key={i} className="analysis__list-item analysis__list-item--success"><CheckCircle2 size={14} /> {g}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Keywords */}
-              <div className="analysis__section glass-card">
+              <div className="analysis__section glass-card section-keywords">
                 <h3 className="analysis__section-title">Keyword Match</h3>
                 <div className="analysis__keywords">
                   {results.matched.length > 0 && (
@@ -262,7 +372,7 @@ export default function AnalysisPage() {
 
               {/* Suggestions */}
               {results.suggestions && results.suggestions.length > 0 && (
-                <div className="analysis__section glass-card">
+                <div className="analysis__section glass-card section-suggestions">
                   <h3 className="analysis__section-title"><Lightbulb size={18} style={{ color: 'var(--cl-primary-light)' }} /> Suggestions</h3>
                   <ul className="analysis__list">
                     {results.suggestions.map((s, i) => (
@@ -272,9 +382,41 @@ export default function AnalysisPage() {
                 </div>
               )}
 
-              <button className="btn-primary analysis__gen-btn" style={{ width: '100%' }} onClick={handleGenerateCoverLetter}>
-                <FileText size={18} /> Generate Cover Letter
-              </button>
+              <div className="section-actions" style={{ display: 'flex', gap: '12px', marginTop: 'var(--space-sm)' }}>
+                <button className="btn-secondary" style={{ flex: 1 }} onClick={handleOptimize} disabled={optimizing || analyzing}>
+                  {optimizing ? <><Loader2 size={18} className="analysis__spinner" /> Optimizing...</> : <><Sparkles size={18} /> Optimize Resume</>}
+                </button>
+                <button className="btn-primary" style={{ flex: 1 }} onClick={handleGenerateCoverLetter}>
+                  <FileText size={18} /> Cover Letter
+                </button>
+              </div>
+
+              {optimizedData && (
+                <div className="analysis__section glass-card section-optimized" style={{ marginTop: 'var(--space-md)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <h3 className="analysis__section-title"><Sparkles size={18} style={{ color: 'var(--cl-warning)' }} /> Optimized Bullets</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {optimizedData.bulletDiffs?.map((diff, i) => (
+                        <div key={i} className="bullet-diff-card" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '8px', border: '1px solid var(--cl-border-tint)' }}>
+                          <div style={{ color: 'var(--cl-error)', fontSize: '0.85rem', marginBottom: '4px', textDecoration: 'line-through' }}>Before: {diff.before}</div>
+                          <div style={{ color: 'var(--cl-secondary-light)', fontSize: '0.9rem', fontWeight: 600 }}>After: {diff.after}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="analysis__section-title"><FileText size={18} style={{ color: 'var(--cl-primary-light)' }} /> Full Optimized Resume</h3>
+                    <div style={{ background: 'var(--cl-surface-container)', padding: '16px', borderRadius: '8px', maxHeight: '300px', overflowY: 'auto', marginBottom: '16px', fontSize: '0.85rem', fontFamily: 'monospace', whiteSpace: 'pre-wrap', color: 'var(--cl-on-surface-variant)' }}>
+                      {optimizedData.optimizedResume}
+                    </div>
+                  </div>
+
+                  <button className="btn-primary" style={{ width: '100%', padding: '12px' }} onClick={handleDownloadPDF}>
+                    <Download size={18} /> Download PDF
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

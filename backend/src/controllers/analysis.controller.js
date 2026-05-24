@@ -30,6 +30,9 @@ const createAnalysis = asyncHandler(async (req, res) => {
     jobTitle: jobTitle || '',
     company: company || '',
     score: result.score,
+    atsScore: result.atsScore,
+    badFormatting: result.badFormatting,
+    atsRecommendations: result.atsRecommendations,
     strengths: result.strengths,
     gaps: result.gaps,
     matchedKeywords: result.matchedKeywords,
@@ -105,6 +108,9 @@ const analyzeDirect = asyncHandler(async (req, res) => {
     success: true,
     data: {
       score: result.score,
+      atsScore: result.atsScore,
+      badFormatting: result.badFormatting,
+      atsRecommendations: result.atsRecommendations,
       strengths: result.strengths,
       gaps: result.gaps,
       matchedKeywords: result.matchedKeywords,
@@ -116,4 +122,35 @@ const analyzeDirect = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { createAnalysis, analyzeDirect, getAnalyses, getAnalysis, deleteAnalysis };
+/**
+ * POST /api/v1/analyses/optimize
+ * Optimize resume text directly based on a job description.
+ */
+const optimize = asyncHandler(async (req, res) => {
+  const { resumeText, jobDescription } = req.body;
+
+  if (!resumeText || !jobDescription) {
+    throw ApiError.badRequest('resumeText and jobDescription are required');
+  }
+
+  const result = await require('../services/ai.service').optimizeResume(resumeText, jobDescription);
+
+  res.status(200).json({
+    success: true,
+    data: result
+  });
+});
+
+/**
+ * POST /api/v1/analyses/match-jobs
+ * Suggest best-fit job roles based on a resume.
+ */
+const matchJobs = asyncHandler(async (req, res) => {
+  const { resumeText } = req.body;
+  if (!resumeText) throw ApiError.badRequest('resumeText is required');
+
+  const result = await require('../services/ai.service').matchJobs(resumeText);
+  res.status(200).json({ success: true, data: result });
+});
+
+module.exports = { createAnalysis, analyzeDirect, getAnalyses, getAnalysis, deleteAnalysis, optimize, matchJobs };

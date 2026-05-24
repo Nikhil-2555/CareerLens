@@ -1,12 +1,74 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import DashboardLayout from '../components/DashboardLayout'
 import TopBar from '../components/TopBar'
-import { User, Bell, Shield, Link2, Moon, Sun, Download, Trash2, CheckCircle2, Mail, FileText, BarChart3 } from 'lucide-react'
+import { User, Bell, Shield, Moon, Sun, Download, Trash2, Mail, FileText, BarChart3, Check, X } from 'lucide-react'
 import './SettingsPage.css'
 
 export default function SettingsPage() {
-  const [darkMode, setDarkMode] = useState(true)
+  const [darkMode, setDarkMode] = useState(() => !document.documentElement.classList.contains('light-mode'))
   const [notifs, setNotifs] = useState({ email: true, analysis: true, digest: false })
+  
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || '{"name":"User", "email":"user@example.com"}'))
+  const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [editName, setEditName] = useState(user.name)
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.remove('light-mode')
+    } else {
+      document.documentElement.classList.add('light-mode')
+    }
+  }, [darkMode])
+
+  const handleSaveProfile = async () => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      const res = await fetch('http://localhost:5000/api/v1/users/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: editName })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const updatedUser = { ...user, name: data.data.name }
+        setUser(updatedUser)
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+        setIsEditingProfile(false)
+        // Refresh page to update sidebar/topbar
+        window.location.reload()
+      }
+    } catch (e) {
+      console.error('Failed to update profile', e)
+    }
+  }
+
+  const handleExportData = async () => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      const headers = { 'Authorization': `Bearer ${token}` }
+      const [profileRes, statsRes] = await Promise.all([
+        fetch('http://localhost:5000/api/v1/users/profile', { headers }),
+        fetch('http://localhost:5000/api/v1/users/stats', { headers })
+      ])
+      const profile = await profileRes.json()
+      const stats = await statsRes.json()
+      
+      const exportData = { profile: profile.data, stats: stats.data }
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'careerlens-data-export.json'
+      a.click()
+    } catch (e) {
+      console.error('Export failed', e)
+    }
+  }
 
   return (
     <DashboardLayout>
@@ -16,13 +78,29 @@ export default function SettingsPage() {
         <section className="settings__section glass-card">
           <div className="settings__section-header"><User size={20} /><h2>Profile</h2></div>
           <div className="settings__profile">
-            <div className="settings__avatar">JD</div>
-            <div className="settings__profile-info">
-              <h3>John Doe</h3>
-              <p className="settings__email">john.doe@gmail.com</p>
-              <div className="badge badge-success"><CheckCircle2 size={12} /> Connected via Google</div>
+            <div className="settings__avatar">{initials}</div>
+            <div className="settings__profile-info" style={{ flex: 1 }}>
+              {isEditingProfile ? (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input 
+                    type="text" 
+                    value={editName} 
+                    onChange={e => setEditName(e.target.value)} 
+                    style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--cl-outline)', background: 'var(--cl-surface)', color: 'var(--cl-on-surface)' }}
+                  />
+                  <button onClick={handleSaveProfile} style={{ color: 'var(--cl-success)', background: 'transparent' }}><Check size={18} /></button>
+                  <button onClick={() => { setIsEditingProfile(false); setEditName(user.name); }} style={{ color: 'var(--cl-error)', background: 'transparent' }}><X size={18} /></button>
+                </div>
+              ) : (
+                <>
+                  <h3>{user.name}</h3>
+                  <p className="settings__email">{user.email}</p>
+                </>
+              )}
             </div>
-            <button className="btn-secondary" style={{ marginLeft: 'auto', padding: '8px 20px', fontSize: '0.85rem' }}>Edit Profile</button>
+            {!isEditingProfile && (
+              <button className="btn-secondary" onClick={() => setIsEditingProfile(true)} style={{ marginLeft: 'auto', padding: '8px 20px', fontSize: '0.85rem' }}>Edit Profile</button>
+            )}
           </div>
         </section>
 
@@ -62,24 +140,13 @@ export default function SettingsPage() {
               <p>CareerLens is GDPR compliant. Your uploaded files are deleted from our servers after text extraction. No PII is sent to AI models beyond resume text.</p>
             </div>
             <div className="settings__privacy-actions">
-              <button className="btn-secondary"><Download size={16} /> Export My Data</button>
+              <button className="btn-secondary" onClick={handleExportData}><Download size={16} /> Export My Data</button>
               <button className="btn-danger"><Trash2 size={16} /> Delete Account</button>
             </div>
             <p className="settings__danger-text">Account deletion is permanent and cannot be undone. All your resumes, analyses, and cover letters will be erased.</p>
           </div>
         </section>
 
-        {/* Connected Services */}
-        <section className="settings__section glass-card">
-          <div className="settings__section-header"><Link2 size={20} /><h2>Connected Services</h2></div>
-          <div className="settings__service">
-            <div className="settings__service-info">
-              <svg width="24" height="24" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-              <div><strong>Google Account</strong><span>john.doe@gmail.com</span></div>
-            </div>
-            <div className="badge badge-success"><CheckCircle2 size={12} /> Connected</div>
-          </div>
-        </section>
       </div>
     </DashboardLayout>
   )
