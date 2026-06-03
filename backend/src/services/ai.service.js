@@ -78,20 +78,9 @@ The JSON object MUST match this exact structure:
     const content = await callGroqAPI([
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
-    ]);
+    ], "json_object");
 
-    // Bulletproof JSON extraction
-    let cleanContent = content;
-    const startIndex = cleanContent.indexOf('{');
-    const endIndex = cleanContent.lastIndexOf('}');
-    if (startIndex !== -1 && endIndex !== -1) {
-      cleanContent = cleanContent.substring(startIndex, endIndex + 1);
-    }
-
-    // Fix "Bad control character" by stripping actual newlines/tabs
-    cleanContent = cleanContent.replace(/[\n\r\t]/g, ' ');
-
-    const result = JSON.parse(cleanContent);
+    const result = JSON.parse(content);
     logger.info(`Analysis complete: Score ${result.score}/100`);
     return result;
   } catch (error) {
@@ -171,20 +160,9 @@ The JSON object MUST match this exact structure:
     const content = await callGroqAPI([
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
-    ]);
+    ], "json_object");
 
-    // Bulletproof JSON extraction
-    let cleanContent = content;
-    const startIndex = cleanContent.indexOf('{');
-    const endIndex = cleanContent.lastIndexOf('}');
-    if (startIndex !== -1 && endIndex !== -1) {
-      cleanContent = cleanContent.substring(startIndex, endIndex + 1);
-    }
-
-    // Fix "Bad control character" by stripping actual newlines/tabs
-    cleanContent = cleanContent.replace(/[\n\r\t]/g, ' ');
-
-    const result = JSON.parse(cleanContent);
+    const result = JSON.parse(content);
     logger.info(`Optimization complete: Generated ${result.bulletDiffs?.length || 0} bullet improvements`);
     return result;
   } catch (error) {
@@ -218,20 +196,9 @@ Return the output ONLY as a valid JSON object matching this structure:
     const content = await callGroqAPI([
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
-    ]);
+    ], "json_object");
     
-    // Bulletproof JSON extraction
-    let cleanContent = content;
-    const startIndex = cleanContent.indexOf('{');
-    const endIndex = cleanContent.lastIndexOf('}');
-    if (startIndex !== -1 && endIndex !== -1) {
-      cleanContent = cleanContent.substring(startIndex, endIndex + 1);
-    }
-
-    // Fix "Bad control character" by stripping actual newlines/tabs
-    cleanContent = cleanContent.replace(/[\n\r\t]/g, ' ');
-
-    return JSON.parse(cleanContent);
+    return JSON.parse(content);
   } catch (error) {
     logger.error('Failed to match jobs via AI', error);
     throw error;
