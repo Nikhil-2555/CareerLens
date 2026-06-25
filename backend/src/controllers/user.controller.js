@@ -3,12 +3,27 @@ const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 
 /**
+ * Helper: find or create a MongoDB user from the Clerk userId.
+ * On first API call after Clerk signup, this auto-creates the user doc.
+ */
+async function findOrCreateUser(clerkId) {
+  let user = await User.findOne({ clerkId });
+  if (!user) {
+    // Auto-create user on first API request after Clerk signup
+    user = await User.create({
+      clerkId,
+      email: `${clerkId}@clerk.pending`, // placeholder until webhook or profile update
+      name: 'New User',
+    });
+  }
+  return user;
+}
+
+/**
  * GET /api/v1/users/profile
  */
 const getProfile = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user.id);
-  if (!user) throw ApiError.notFound('User not found');
-
+  const user = await findOrCreateUser(req.user.id);
   res.json({ success: true, data: user });
 });
 
@@ -20,15 +35,19 @@ const updateProfile = asyncHandler(async (req, res) => {
   const updateData = {};
 
   if (name) updateData.name = name;
-  if (settings) updateData.settings = { ...req.user.settings, ...settings };
+  if (settings) updateData.settings = settings;
 
-  const user = await User.findByIdAndUpdate(req.user.id, updateData, {
+  let user = await User.findOne({ clerkId: req.user.id });
+  if (!user) {
+    user = await findOrCreateUser(req.user.id);
+  }
+
+  const updated = await User.findOneAndUpdate({ clerkId: req.user.id }, updateData, {
     new: true,
     runValidators: true,
   });
 
-  if (!user) throw ApiError.notFound('User not found');
-  res.json({ success: true, data: user });
+  res.json({ success: true, data: updated });
 });
 
 /**
@@ -39,11 +58,13 @@ const getStats = asyncHandler(async (req, res) => {
   const Analysis = require('../models/Analysis');
   const CoverLetter = require('../models/CoverLetter');
 
+  const userId = req.user.id;
+
   const [totalApps, analyses, coverLetters, interviews] = await Promise.all([
-    Application.countDocuments({ userId: req.user.id }),
-    Analysis.find({ userId: req.user.id }).select('score'),
-    CoverLetter.countDocuments({ userId: req.user.id }),
-    Application.countDocuments({ userId: req.user.id, status: 'interview' }),
+    Application.countDocuments({ userId }),
+    Analysis.find({ userId }).select('score'),
+    CoverLetter.countDocuments({ userId }),
+    Application.countDocuments({ userId, status: 'interview' }),
   ]);
 
   const avgScore = analyses.length > 0
@@ -70,16 +91,17 @@ const deleteAccount = asyncHandler(async (req, res) => {
   const CoverLetter = require('../models/CoverLetter');
   const Application = require('../models/Application');
 
+  const userId = req.user.id;
+
   // Delete all user data
   await Promise.all([
-    Resume.deleteMany({ userId: req.user.id }),
-    Analysis.deleteMany({ userId: req.user.id }),
-    CoverLetter.deleteMany({ userId: req.user.id }),
-    Application.deleteMany({ userId: req.user.id }),
-    User.findByIdAndDelete(req.user.id),
+    Resume.deleteMany({ userId }),
+    Analysis.deleteMany({ userId }),
+    CoverLetter.deleteMany({ userId }),
+    Application.deleteMany({ userId }),
+    User.findOneAndDelete({ clerkId: userId }),
   ]);
 
-  res.clearCookie('refreshToken', { path: '/' });
   res.json({ success: true, message: 'Account deleted successfully' });
 });
 

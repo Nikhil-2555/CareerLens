@@ -1,45 +1,33 @@
-const jwt = require('jsonwebtoken');
+const { getAuth } = require('@clerk/express');
 const ApiError = require('../utils/ApiError');
 
 /**
- * Verify JWT access token from Authorization header.
- * Attaches decoded user to req.user
+ * Verify Clerk session token from Authorization header.
+ * Attaches auth info to req.auth (userId, sessionId, etc.)
  */
 const verifyAccessToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  const auth = getAuth(req);
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw ApiError.unauthorized('No access token provided');
+  if (!auth || !auth.userId) {
+    throw ApiError.unauthorized('Not authenticated. Please sign in.');
   }
 
-  const token = authHeader.split(' ')[1];
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      throw ApiError.unauthorized('Access token expired');
-    }
-    throw ApiError.unauthorized('Invalid access token');
-  }
+  // For backward compatibility, also set req.user
+  req.user = { id: auth.userId };
+  next();
 };
 
 /**
- * Optional auth — attaches user if token present, but doesn't block
+ * Optional auth — attaches user if Clerk session present, but doesn't block
  */
 const optionalAuth = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return next();
-  }
-
   try {
-    const token = authHeader.split(' ')[1];
-    req.user = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    const auth = getAuth(req);
+    if (auth && auth.userId) {
+      req.user = { id: auth.userId };
+    }
   } catch {
-    // Silently ignore invalid tokens for optional auth
+    // Silently ignore — no valid session
   }
   next();
 };

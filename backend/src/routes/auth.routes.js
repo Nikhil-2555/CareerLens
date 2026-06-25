@@ -1,22 +1,13 @@
+// Auth routes are now handled by Clerk.
+// This file is kept as a placeholder for any custom auth-adjacent endpoints.
 const router = require('express').Router();
-const { refreshTokens, logout, getMe, register, login, forgotPassword, resetPassword } = require('../controllers/auth.controller');
-const { verifyAccessToken } = require('../middleware/auth');
 
-// Local Auth
-router.post('/register', register);
-router.post('/login', login);
-
-// Password reset flow
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password/:token', resetPassword);
-
-// Refresh token
-router.post('/refresh', refreshTokens);
-
-// Logout (requires auth)
-router.post('/logout', verifyAccessToken, logout);
-
-// Get current user
-router.get('/me', verifyAccessToken, getMe);
+// Health check for auth
+router.get('/status', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Authentication is handled by Clerk. Visit the frontend to sign in.',
+  });
+});
 
 module.exports = router;

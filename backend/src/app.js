@@ -3,8 +3,9 @@ const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
+const { clerkMiddleware } = require('@clerk/express');
+
 // Import routes
-const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const resumeRoutes = require('./routes/resume.routes');
 const analysisRoutes = require('./routes/analysis.routes');
@@ -35,6 +36,9 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.COOKIE_SECRET));
 
+// ─── Clerk Middleware (must come before routes) ───
+app.use(clerkMiddleware());
+
 // ─── Logging ───
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
@@ -54,7 +58,6 @@ app.get('/health', (req, res) => {
 });
 
 // ─── Routes ───
-app.use('/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/resumes', resumeRoutes);
 app.use('/api/v1/analyses', analysisRoutes);
@@ -76,5 +79,3 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 module.exports = app;
-
-// Trigger nodemon restart to load the new GROQ_API_KEY

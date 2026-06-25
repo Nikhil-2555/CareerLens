@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useUser, useAuth } from '@clerk/clerk-react'
 import DashboardLayout from '../components/DashboardLayout'
 import TopBar from '../components/TopBar'
 import { TrendingUp, FileText, Briefcase, Calendar, MoreHorizontal, Plus, X, ArrowRight, Trash2, ChevronDown } from 'lucide-react'
@@ -199,11 +200,12 @@ export default function DashboardPage() {
   const [isBackendConnected, setIsBackendConnected] = useState(false)
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-  const user = JSON.parse(localStorage.getItem('user') || '{"name":"User"}')
-  const firstName = user.name.split(' ')[0]
+  const { user } = useUser()
+  const { getToken } = useAuth()
+  const firstName = user?.firstName || 'User'
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('accessToken')
+  const getAuthHeaders = async () => {
+    const token = await getToken()
     return token
       ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
       : { 'Content-Type': 'application/json' }
@@ -213,7 +215,8 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadApplications = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/applications`, { headers: getAuthHeaders(), credentials: 'include' })
+        const headers = await getAuthHeaders()
+        const res = await fetch(`${API_BASE}/api/v1/applications`, { headers, credentials: 'include' })
         if (res.ok) {
           const data = await res.json()
           if (data.success && data.data && data.data.length > 0) {
@@ -232,9 +235,10 @@ export default function DashboardPage() {
   // ─── Create Application ───
   const handleCreateApplication = async (appData) => {
     if (isBackendConnected) {
+      const headers = await getAuthHeaders()
       const res = await fetch(`${API_BASE}/api/v1/applications`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers,
         credentials: 'include',
         body: JSON.stringify(appData),
       })
@@ -269,9 +273,10 @@ export default function DashboardPage() {
 
     if (isBackendConnected && !card._id.startsWith('demo-') && !card._id.startsWith('local-')) {
       try {
+        const headers = await getAuthHeaders()
         await fetch(`${API_BASE}/api/v1/applications/${card._id}`, {
           method: 'PATCH',
-          headers: getAuthHeaders(),
+          headers,
           credentials: 'include',
           body: JSON.stringify({ status: newStatus }),
         })
@@ -292,9 +297,10 @@ export default function DashboardPage() {
 
     if (isBackendConnected && !card._id.startsWith('demo-') && !card._id.startsWith('local-')) {
       try {
+        const headers = await getAuthHeaders()
         await fetch(`${API_BASE}/api/v1/applications/${card._id}`, {
           method: 'DELETE',
-          headers: getAuthHeaders(),
+          headers,
           credentials: 'include',
         })
       } catch {

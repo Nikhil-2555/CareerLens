@@ -1,9 +1,10 @@
 import { Bell, Search } from 'lucide-react'
+import { useUser, UserButton } from '@clerk/clerk-react'
 import './TopBar.css'
 
 export default function TopBar({ title, subtitle }) {
-  const user = JSON.parse(localStorage.getItem('user') || '{"name":"User"}')
-  const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+  const { user } = useUser()
+  const userName = user?.fullName || user?.firstName || 'User'
 
   return (
     <header className="topbar">
@@ -21,7 +22,7 @@ export default function TopBar({ title, subtitle }) {
           <span className="topbar__notification-dot"></span>
         </button>
         <div className="topbar__profile">
-          <div className="topbar__avatar">{initials}</div>
+          <UserButton afterSignOutUrl="/" />
         </div>
       </div>
     </header>

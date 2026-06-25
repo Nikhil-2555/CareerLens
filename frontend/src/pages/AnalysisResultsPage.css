@@ -1,0 +1,659 @@
+/* ============================================
+   CareerLens Analysis Results Visualization Page
+   ============================================ */
+
+.results__header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  background: var(--cl-surface-container);
+  border-bottom: 1px solid var(--cl-outline-variant);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.results__back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--cl-on-surface-variant);
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: transparent;
+  border: 1px solid var(--cl-outline-variant);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+.results__back-btn:hover {
+  color: var(--cl-on-surface);
+  border-color: var(--cl-primary);
+  background: rgba(108, 92, 231, 0.1);
+  transform: translateX(-3px);
+}
+
+.results__file-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(108, 92, 231, 0.15);
+  border: 1px solid rgba(108, 92, 231, 0.3);
+  border-radius: var(--radius-full);
+  color: var(--cl-primary-light);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.results__actions-top {
+  display: flex;
+  gap: 12px;
+}
+
+.results__content {
+  padding: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Hero Gauges Section */
+.results__hero-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.results__hero-card {
+  padding: 28px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.results__hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, var(--cl-primary) 0%, transparent 70%);
+  opacity: 0.12;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.results__gauge-wrap {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  flex-shrink: 0;
+}
+.results__gauge-wrap svg {
+  width: 100%;
+  height: 100%;
+}
+
+.results__gauge-val {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.results__gauge-num {
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.results__gauge-max {
+  font-size: 0.75rem;
+  color: var(--cl-on-surface-variant);
+  font-weight: 600;
+}
+
+.results__hero-info h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--cl-on-surface);
+}
+.results__hero-info p {
+  font-size: 0.9rem;
+  color: var(--cl-on-surface-variant);
+  line-height: 1.5;
+}
+
+/* Tabs Navigation */
+.results__tabs {
+  display: flex;
+  gap: 12px;
+  border-bottom: 1px solid var(--cl-outline-variant);
+  padding-bottom: 12px;
+  overflow-x: auto;
+}
+
+.results__tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--cl-on-surface-variant);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+.results__tab-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cl-on-surface);
+}
+.results__tab-btn--active {
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.2), rgba(108, 92, 231, 0.05));
+  border-color: var(--cl-primary);
+  color: var(--cl-primary-light);
+  box-shadow: 0 0 16px rgba(108, 92, 231, 0.15);
+}
+
+/* Tab Panels */
+.results__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+/* Visual Stat Breakdown Bars */
+.results__breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.results__stat-bar-card {
+  padding: 20px;
+  background: var(--cl-surface-container);
+  border: 1px solid var(--cl-outline-variant);
+  border-radius: var(--radius-lg);
+}
+.results__stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.results__stat-header span {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--cl-on-surface);
+}
+.results__stat-header strong {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.results__progress-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.results__progress-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Strengths / Gaps Grid */
+.results__two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .results__two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.results__list-card {
+  padding: 24px;
+}
+.results__list-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.15rem;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--cl-outline-variant);
+}
+
+.results__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.results__list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* Keyword Cloud */
+.results__keyword-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.results__kw-box {
+  padding: 20px;
+  background: var(--cl-surface-container);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--cl-outline-variant);
+}
+.results__kw-title {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.results__tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Bottom CTA Banner */
+.results__cta-banner {
+  padding: 32px;
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.25), rgba(0, 184, 148, 0.15));
+  border: 1px solid var(--cl-primary-light);
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 24px;
+  box-shadow: var(--shadow-glow);
+}
+.results__cta-info h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: white;
+}
+.results__cta-info p {
+  color: var(--cl-on-surface-variant);
+  font-size: 0.95rem;
+}
+.results__cta-btns {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Empty State */
+.results__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  gap: 20px;
+}
+
+/* =========================================================
+   NEW: Template Selector & 1-Page Constrained Document View
+   ========================================================= */
+
+.results__template-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.results__template-section h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--cl-on-surface);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.results__template-grid {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+}
+
+.results__template-card {
+  flex: 0 0 170px;
+  padding: 16px;
+  background: var(--cl-surface-container);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.results__template-card:hover {
+  background: rgba(255,255,255,0.04);
+  transform: translateY(-2px);
+}
+.results__template-card--active {
+  border-color: var(--cl-secondary);
+  background: linear-gradient(135deg, rgba(0, 184, 148, 0.15), rgba(0, 184, 148, 0.05));
+  box-shadow: 0 4px 16px rgba(0, 184, 148, 0.2);
+}
+
+.results__template-mock {
+  width: 50px;
+  height: 64px;
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.results__template-mock-line {
+  height: 3px;
+  background: #cbd5e1;
+  border-radius: 2px;
+  width: 100%;
+}
+
+.results__template-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--cl-on-surface);
+}
+
+/* Strictly Enforced 1-Page Resume Preview Container */
+.resume-onepage-wrapper {
+  background: var(--cl-surface-container-high);
+  padding: 40px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--cl-outline-variant);
+  display: flex;
+  justify-content: center;
+  overflow: auto;
+}
+
+.resume-print-box {
+  width: 8.5in;
+  min-height: 11in;
+  max-height: 11in; /* Strictly constrained to 1 page */
+  overflow: hidden; /* Prevent multi-page spill */
+  background: white;
+  color: #1e293b;
+  padding: 0.5in;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+  font-size: 10pt;
+  line-height: 1.35;
+  page-break-inside: avoid;
+  position: relative;
+}
+
+/* Email Modal Overlay */
+.results__modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.results__modal-card {
+  width: 100%;
+  max-width: 480px;
+  padding: 32px;
+  background: var(--cl-surface-glass);
+  border: 1px solid var(--cl-outline-variant);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+
+/* =====================================================================
+   WORLD-CLASS RESUME LAYOUT ENGINE (Solves "Sab mixing lagta he")
+   Enforces immaculate vertical rhythm, clear section headers, & crisp bullets
+   ===================================================================== */
+
+/* Base resets inside CV container */
+.cv-style * {
+  color: inherit !important;
+  font-family: inherit !important;
+  line-height: inherit !important;
+  box-sizing: border-box !important;
+}
+
+/* Dedicated Candidate Hero Header (Never mixes with section titles) */
+.cv-hero-name {
+  margin-bottom: 20px !important;
+  padding-bottom: 12px !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+.cv-hero-name h1 {
+  font-size: 22pt !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  margin: 0 0 4px 0 !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+.cv-hero-name p {
+  font-size: 10pt !important;
+  color: #64748b !important;
+  margin: 0 !important;
+  font-weight: 500 !important;
+}
+
+/* Body Paragraphs - Pristine vertical rhythm */
+.cv-style p {
+  margin-top: 5px !important;
+  margin-bottom: 7px !important;
+  font-size: 10pt !important;
+  color: #334155 !important;
+  line-height: 1.5 !important;
+}
+
+/* Strong / Bold typography (Job roles, Company names) */
+.cv-style strong, .cv-style b {
+  font-weight: 700 !important;
+  color: #0f172a !important;
+}
+
+/* Bullet Lists - Crisp indents & separation between jobs */
+.cv-style ul {
+  margin-top: 6px !important;
+  margin-bottom: 16px !important;
+  padding-left: 24px !important;
+  list-style-type: disc !important;
+}
+.cv-style li {
+  margin-bottom: 5px !important;
+  font-size: 10pt !important;
+  line-height: 1.45 !important;
+  color: #334155 !important;
+}
+
+/* Section Headings (H2 / H3) - Clear structural division */
+.cv-style h2, .cv-style h3 {
+  font-size: 11.5pt !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  margin-top: 18px !important;
+  margin-bottom: 8px !important;
+  display: block !important;
+  width: 100% !important;
+  clear: both !important;
+}
+
+/* Subheadings / Job Titles (H4) */
+.cv-style h4 {
+  font-size: 10.5pt !important;
+  font-weight: 700 !important;
+  margin-top: 12px !important;
+  margin-bottom: 4px !important;
+  color: #1e293b !important;
+}
+
+
+/* ─── 10 DISTINCT TEMPLATE THEMES (Targeting H2 / H3 only) ─── */
+
+/* 1. NOVORESUME EMERALD ACCENT */
+.cv-style--novoresume { font-family: 'Inter', system-ui, sans-serif !important; color: #1f2937 !important; }
+.cv-style--novoresume h2, .cv-style--novoresume h3 {
+  color: #059669 !important;
+  border-left: 4px solid #059669 !important;
+  padding-left: 10px !important;
+  border-bottom: none !important;
+  background: #ecfdf5 !important;
+  padding: 5px 10px !important;
+}
+
+/* 2. EXECUTIVE WALL STREET SERIF */
+.cv-style--wallstreet { font-family: Garamond, Georgia, serif !important; color: #0f172a !important; }
+.cv-style--wallstreet h2, .cv-style--wallstreet h3 {
+  color: #0f172a !important;
+  text-align: center !important;
+  border-top: 1px solid #334155 !important;
+  border-bottom: 1px solid #334155 !important;
+  border-left: none !important;
+  background: transparent !important;
+  padding: 4px 0 !important;
+  letter-spacing: 0.15em !important;
+}
+
+/* 3. REACTIVE DEEP TECH MONOSPACE */
+.cv-style--reactive { font-family: "Fira Code", "Courier New", monospace !important; color: #1e293b !important; }
+.cv-style--reactive h2, .cv-style--reactive h3 {
+  background: #0f172a !important;
+  color: #38bdf8 !important;
+  padding: 5px 12px !important;
+  border-radius: 4px !important;
+  border: none !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* 4. CANVA CREATIVE CORAL */
+.cv-style--canva { font-family: 'Outfit', sans-serif !important; color: #334155 !important; }
+.cv-style--canva h2, .cv-style--canva h3 {
+  color: #e11d48 !important;
+  border-bottom: 2.5px dotted #f43f5e !important;
+  border-left: none !important;
+  background: transparent !important;
+  padding-bottom: 4px !important;
+  font-weight: 800 !important;
+}
+
+/* 5. LINEAR NORDIC ULTRA-CLEAN */
+.cv-style--linear { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important; color: #334155 !important; }
+.cv-style--linear h2, .cv-style--linear h3 {
+  color: #475569 !important;
+  font-size: 10.5pt !important;
+  letter-spacing: 0.22em !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  border-left: none !important;
+  background: transparent !important;
+  padding-bottom: 4px !important;
+}
+
+/* 6. RESUMEMAKER INDIGO PILL */
+.cv-style--resumemaker { font-family: system-ui, sans-serif !important; color: #1f2937 !important; }
+.cv-style--resumemaker h2, .cv-style--resumemaker h3 {
+  color: #4f46e5 !important;
+  border-left: 8px solid #4f46e5 !important;
+  background: #eef2ff !important;
+  padding: 5px 12px !important;
+  border-radius: 0 6px 6px 0 !important;
+  font-weight: 800 !important;
+  border-bottom: none !important;
+}
+
+/* 7. STANDARD HARVARD ACADEMIC */
+.cv-style--harvard { font-family: "Times New Roman", Times, serif !important; color: #000000 !important; }
+.cv-style--harvard h2, .cv-style--harvard h3 {
+  color: #000000 !important;
+  text-align: left !important;
+  border-bottom: 1.5px solid #000000 !important;
+  border-left: none !important;
+  background: transparent !important;
+  padding-bottom: 3px !important;
+}
+
+/* 8. AMBER STUDIO MODERN */
+.cv-style--amber { font-family: 'Montserrat', sans-serif !important; color: #292524 !important; }
+.cv-style--amber h2, .cv-style--amber h3 {
+  color: #d97706 !important;
+  border-bottom: 3px solid #fbbf24 !important;
+  border-left: none !important;
+  background: transparent !important;
+  font-weight: 700 !important;
+  padding-bottom: 3px !important;
+}
+
+/* 9. DENSE CHRONOLOGICAL DARK BAR */
+.cv-style--dense { font-family: 'Roboto', sans-serif !important; color: #1e293b !important; }
+.cv-style--dense h2, .cv-style--dense h3 {
+  background: #334155 !important;
+  color: #ffffff !important;
+  padding: 4px 10px !important;
+  border: none !important;
+  letter-spacing: 0.1em !important;
+}
+
+/* 10. GLASS STUDIO TEAL */
+.cv-style--glass_teal { font-family: 'Outfit', sans-serif !important; color: #134e4a !important; }
+.cv-style--glass_teal h2, .cv-style--glass_teal h3 {
+  color: #0d9488 !important;
+  border-bottom: 2px solid #5eead4 !important;
+  border-left: none !important;
+  background: rgba(204, 251, 241, 0.45) !important;
+  padding: 4px 10px !important;
+  border-radius: 4px !important;
+}

@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { createAnalysis, analyzeDirect, getAnalyses, getAnalysis, deleteAnalysis, optimize, matchJobs } = require('../controllers/analysis.controller');
+const { createAnalysis, analyzeDirect, getAnalyses, getAnalysis, deleteAnalysis, optimize, matchJobs, sendEmail } = require('../controllers/analysis.controller');
 const { verifyAccessToken, optionalAuth } = require('../middleware/auth');
 const { aiLimiter } = require('../middleware/rateLimiter');
 
@@ -7,6 +7,7 @@ const { aiLimiter } = require('../middleware/rateLimiter');
 router.post('/analyze-direct', optionalAuth, aiLimiter, analyzeDirect);
 router.post('/optimize', optionalAuth, aiLimiter, optimize);
 router.post('/match-jobs', optionalAuth, aiLimiter, matchJobs);
+router.post('/send-email', optionalAuth, sendEmail);
 
 // Protected routes
 router.use(verifyAccessToken);

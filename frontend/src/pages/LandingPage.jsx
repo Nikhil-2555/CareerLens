@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { Sparkles, ArrowRight, Play, Upload, FileText, BarChart3, Briefcase, Target, Star, Menu, X } from 'lucide-react'
+import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/clerk-react'
+import { Sparkles, ArrowRight, Play, Upload, FileText, BarChart3, Briefcase, Target, Star, Menu, X, Zap, ShieldCheck, Cpu } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import './LandingPage.css'
 
@@ -25,12 +26,44 @@ const testimonials = [
 export default function LandingPage() {
   const [mobileMenu, setMobileMenu] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [tilt, setTilt] = useState({ x: 0, y: 0 })
+  const [isScanning, setIsScanning] = useState(false)
+  const [scanScore, setScanScore] = useState(48)
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 50)
     window.addEventListener('scroll', h)
     return () => window.removeEventListener('scroll', h)
   }, [])
+
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const centerX = rect.width / 2
+    const centerY = rect.height / 2
+    const rotateX = ((y - centerY) / centerY) * -12
+    const rotateY = ((x - centerX) / centerX) * 12
+    setTilt({ x: rotateX, y: rotateY })
+  }
+
+  const handleMouseLeave = () => setTilt({ x: 0, y: 0 })
+
+  const triggerLiveScan = () => {
+    if (isScanning) return
+    setIsScanning(true)
+    setScanScore(48)
+    let current = 48
+    const interval = setInterval(() => {
+      current += Math.floor(Math.random() * 8) + 4
+      if (current >= 98) {
+        current = 98
+        clearInterval(interval)
+        setTimeout(() => setIsScanning(false), 2000)
+      }
+      setScanScore(current)
+    }, 55)
+  }
 
   return (
     <div className="landing">
@@ -41,47 +74,120 @@ export default function LandingPage() {
             <a href="#features">Features</a>
             <a href="#how-it-works">How It Works</a>
             <a href="#testimonials">Testimonials</a>
-            <Link to="/login" className="btn-secondary landing__nav-cta">Sign In</Link>
+            <SignedOut>
+              <SignInButton mode="redirect" redirectUrl="/dashboard">
+                <button className="btn-secondary landing__nav-cta">Sign In</button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <Link to="/dashboard" className="btn-secondary landing__nav-cta" style={{ marginRight: '8px' }}>Dashboard</Link>
+              <UserButton afterSignOutUrl="/" />
+            </SignedIn>
           </div>
           <button className="landing__menu-btn" onClick={() => setMobileMenu(!mobileMenu)}>{mobileMenu ? <X size={24} /> : <Menu size={24} />}</button>
         </div>
       </nav>
 
       <section className="landing__hero">
-        <div className="landing__hero-bg"><div className="landing__hero-orb landing__hero-orb--1"></div><div className="landing__hero-orb landing__hero-orb--2"></div><div className="landing__hero-orb landing__hero-orb--3"></div></div>
+        {/* Cyberpunk Grid Floor & Nebula Nebulas */}
+        <div className="landing__hero-bg">
+          <div className="cyber-grid-floor"></div>
+          <div className="landing__hero-orb landing__hero-orb--1"></div>
+          <div className="landing__hero-orb landing__hero-orb--2"></div>
+          <div className="landing__hero-orb landing__hero-orb--3"></div>
+        </div>
+
         <div className="container landing__hero-content">
           <div className="landing__hero-text">
-            <div className="landing__hero-badge"><Sparkles size={14} /><span>Powered by GPT-4o</span></div>
-            <h1 className="landing__hero-title">Land Your Dream Job with <span className="gradient-text">AI-Powered Resume Intelligence</span></h1>
-            <p className="landing__hero-subtitle">Maximize your interview chances with instant AI-driven resume screening, tailored cover letter coaching, and smart application tracking.</p>
+            <div className="landing__hero-badge"><Sparkles size={14} style={{ color: '#00dce6' }} /><span>Stitch AI 4.0 Neural Screener</span></div>
+            <h1 className="landing__hero-title">Land Your Dream Job with <span className="cyber-gradient-text">AI-Powered Intelligence</span></h1>
+            <p className="landing__hero-subtitle">Maximize your interview chances with AI-driven resume screening, tailored keyword optimization, and real-time career coaching.</p>
+            
             <div className="landing__hero-actions">
-              <Link to="/login" className="btn-primary landing__hero-btn">Get Started Free <ArrowRight size={18} /></Link>
-              <button className="btn-secondary landing__hero-btn"><Play size={18} /> Watch Demo</button>
+              <SignedOut>
+                <SignUpButton mode="redirect" redirectUrl="/dashboard">
+                  <button className="btn-stitch-primary">Get Started Free <ArrowRight size={18} /></button>
+                </SignUpButton>
+              </SignedOut>
+              <SignedIn>
+                <Link to="/dashboard" className="btn-stitch-primary">Go to Dashboard <ArrowRight size={18} /></Link>
+              </SignedIn>
+              <button className="btn-stitch-ghost"><Play size={18} /> Watch Demo</button>
             </div>
+
             <div className="landing__hero-stats">
-              <div className="landing__stat"><span className="landing__stat-num">10K+</span><span className="landing__stat-label">Resumes Analyzed</span></div>
+              <div className="landing__stat"><span className="landing__stat-num">98.4%</span><span className="landing__stat-label">ATS Accuracy</span></div>
               <div className="landing__stat-divider"></div>
-              <div className="landing__stat"><span className="landing__stat-num">85%</span><span className="landing__stat-label">Interview Rate</span></div>
+              <div className="landing__stat"><span className="landing__stat-num">3x</span><span className="landing__stat-label">Interview Rate</span></div>
               <div className="landing__stat-divider"></div>
-              <div className="landing__stat"><span className="landing__stat-num">4.9★</span><span className="landing__stat-label">User Rating</span></div>
+              <div className="landing__stat"><span className="landing__stat-num">&lt; 2s</span><span className="landing__stat-label">Instant Parse</span></div>
             </div>
           </div>
-          <div className="landing__hero-visual">
-            <div className="landing__preview glass-card">
-              <div className="landing__preview-header"><div className="landing__preview-dots"><span></span><span></span><span></span></div><span className="landing__preview-title">Resume Analysis</span></div>
-              <div className="landing__preview-body">
-                <div className="landing__score-ring">
-                  <svg viewBox="0 0 100 100" className="landing__score-svg">
-                    <circle cx="50" cy="50" r="42" fill="none" stroke="var(--cl-outline-variant)" strokeWidth="6" opacity="0.3" />
-                    <circle cx="50" cy="50" r="42" fill="none" stroke="url(#scoreG)" strokeWidth="6" strokeLinecap="round" strokeDasharray="264" strokeDashoffset="26" transform="rotate(-90 50 50)" className="landing__score-circle" />
-                    <defs><linearGradient id="scoreG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="var(--cl-primary)" /><stop offset="100%" stopColor="var(--cl-secondary)" /></linearGradient></defs>
-                  </svg>
-                  <div className="landing__score-value"><span className="landing__score-num">92</span><span className="landing__score-label">Match</span></div>
+
+          {/* Stitch 3D Parallax Cyberpunk Window */}
+          <div className="landing__hero-visual" onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+            
+            {/* Floating Cyberpunk Keyword Tags */}
+            <div className="cyber-tag cyber-tag--1"><span>⚡ Python 3.12</span></div>
+            <div className="cyber-tag cyber-tag--2"><span>🔥 AWS Cloud</span></div>
+            <div className="cyber-tag cyber-tag--3"><span>💎 React &amp; Next.js</span></div>
+            <div className="cyber-tag cyber-tag--4"><span>🚀 System Design</span></div>
+
+            <div 
+              className={`stitch-window-card ${isScanning ? 'is-scanning' : ''}`}
+              style={{ transform: `perspective(1400px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)` }}
+            >
+              {/* Holographic Cyber Laser */}
+              <div className="stitch-cyber-laser"></div>
+
+              {/* Window Bar */}
+              <div className="stitch-window-topbar">
+                <div className="stitch-window-dots"><span></span><span></span><span></span></div>
+                <div className="stitch-window-tab active">📄 Resume_vFinal.pdf</div>
+                <div className="stitch-window-tab">🎯 JD_Match_Analysis</div>
+                <button className="btn-stitch-test" onClick={triggerLiveScan} disabled={isScanning}>
+                  <Zap size={12} className={isScanning ? 'spin' : ''} /> {isScanning ? 'Boosting Score...' : '⚡ Test Live Scan'}
+                </button>
+              </div>
+
+              <div className="stitch-window-body">
+                <div className="stitch-gauge-container">
+                  <div className="stitch-gauge-ring">
+                    <svg viewBox="0 0 100 100" className="stitch-gauge-svg">
+                      <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
+                      <circle 
+                        cx="50" cy="50" r="42" fill="none" stroke="url(#stitchScoreG)" strokeWidth="8" strokeLinecap="round" 
+                        strokeDasharray="264" strokeDashoffset={264 - (264 * scanScore) / 100} 
+                        transform="rotate(-90 50 50)" className="stitch-gauge-circle" 
+                        style={{ transition: 'stroke-dashoffset 0.08s linear' }}
+                      />
+                      <defs><linearGradient id="stitchScoreG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#00dce6" /><stop offset="50%" stopColor="#2e5bff" /><stop offset="100%" stopColor="#ddb7ff" /></linearGradient></defs>
+                    </svg>
+                    <div className="stitch-gauge-val">
+                      <span className="stitch-gauge-num">{scanScore}</span>
+                      <span className="stitch-gauge-sub">{isScanning ? 'AI Optimizing' : 'Fit Match'}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="stitch-diagnostics">
+                    <div className="stitch-diag-row">
+                      <div className="stitch-diag-head"><span>Semantic Keyword Density</span> <strong style={{ color: '#00dce6' }}>{Math.min(100, Math.floor(scanScore * 0.98))}%</strong></div>
+                      <div className="stitch-track"><div className="stitch-fill" style={{ width: `${Math.min(100, scanScore * 0.98)}%`, background: '#00dce6', boxShadow: '0 0 12px #00dce6' }}></div></div>
+                    </div>
+                    <div className="stitch-diag-row">
+                      <div className="stitch-diag-head"><span>ATS Grammar &amp; Structure</span> <strong style={{ color: '#ddb7ff' }}>{Math.min(100, Math.floor(scanScore * 1.02))}%</strong></div>
+                      <div className="stitch-track"><div className="stitch-fill" style={{ width: `${Math.min(100, scanScore * 1.02)}%`, background: '#ddb7ff', boxShadow: '0 0 12px #ddb7ff' }}></div></div>
+                    </div>
+                    <div className="stitch-diag-row">
+                      <div className="stitch-diag-head"><span>Quantified Impact Metrics</span> <strong style={{ color: '#2e5bff' }}>{Math.min(100, Math.floor(scanScore * 0.91))}%</strong></div>
+                      <div className="stitch-track"><div className="stitch-fill" style={{ width: `${Math.min(100, scanScore * 0.91)}%`, background: '#2e5bff', boxShadow: '0 0 12px #2e5bff' }}></div></div>
+                    </div>
+                  </div>
                 </div>
-                <div className="landing__preview-metrics">
-                  {[['Keywords', 88, 'var(--cl-primary)'], ['Experience', 95, 'var(--cl-secondary)'], ['Structure', 76, 'var(--cl-tertiary)']].map(([l, v, c]) => (
-                    <div key={l} className="landing__metric"><span className="landing__metric-label">{l}</span><div className="landing__metric-bar"><div className="landing__metric-fill" style={{ width: `${v}%`, background: c }}></div></div><span className="landing__metric-val">{v}%</span></div>
-                  ))}
+
+                <div className="stitch-ai-suggestions">
+                  <div className="stitch-sug-chip">✨ AI Added: &quot;Scaled Kubernetes cluster handling 10M+ daily API requests&quot;</div>
+                  <div className="stitch-sug-chip success">✔️ 100% ATS Clean Formatting Verified</div>
                 </div>
               </div>
             </div>
@@ -145,7 +251,14 @@ export default function LandingPage() {
           <div className="landing__cta-card glass-card">
             <h2>Ready to supercharge your job search?</h2>
             <p>Join thousands of job seekers who landed their dream roles with CareerLens.</p>
-            <Link to="/login" className="btn-primary">Get Started Free <ArrowRight size={18} /></Link>
+            <SignedOut>
+              <SignUpButton mode="redirect" redirectUrl="/dashboard">
+                <button className="btn-primary">Get Started Free <ArrowRight size={18} /></button>
+              </SignUpButton>
+            </SignedOut>
+            <SignedIn>
+              <Link to="/dashboard" className="btn-primary">Go to Dashboard <ArrowRight size={18} /></Link>
+            </SignedIn>
           </div>
         </div>
       </section>

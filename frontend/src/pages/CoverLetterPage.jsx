@@ -1,4 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
+import { useAuth, useUser } from '@clerk/clerk-react'
 import DashboardLayout from '../components/DashboardLayout'
 import TopBar from '../components/TopBar'
 import { Sparkles, RefreshCw, Copy, Download, Upload, FileText, X, Check, Loader2, ChevronDown, Plus } from 'lucide-react'
@@ -18,13 +20,17 @@ Sincerely,
 John Doe`
 
 export default function CoverLetterPage() {
+  const location = useLocation()
+  const { user } = useUser()
   // ─── State ───
   const [letter, setLetter] = useState(DEMO_LETTER)
   const [versions, setVersions] = useState([
-    { id: 1, label: 'Version 1', date: 'May 22, 2026', content: DEMO_LETTER, jobTitle: 'Senior Frontend Engineer', company: 'Google' },
+    { id: 1, label: 'Demo Sample', date: 'May 22, 2026', content: DEMO_LETTER, jobTitle: 'Senior Frontend Engineer', company: 'Google' },
   ])
   const [activeVersion, setActiveVersion] = useState(1)
   const [copied, setCopied] = useState(false)
+  const [latestAnalysis, setLatestAnalysis] = useState(null)
+  const autoGenRef = useRef(false)
 
   // Generate form
   const [showGenerateForm, setShowGenerateForm] = useState(false)
@@ -37,10 +43,110 @@ export default function CoverLetterPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState('')
   const fileInputRef = useRef(null)
+  const { getToken } = useAuth()
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('accessToken')
+  const getAuthHeaders = async () => {
+    const token = await getToken()
     return token ? { 'Authorization': `Bearer ${token}` } : {}
+  }
+
+  // Fetch latest user analysis if arriving directly
+  useEffect(() => {
+    getAuthHeaders().then(headers => {
+      fetch(`${API_BASE}/api/v1/analyses`, { headers, credentials: 'include' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.data?.analyses?.length > 0) {
+            setLatestAnalysis(data.data.analyses[0])
+          }
+        }).catch(() => {})
+    })
+  }, [])
+
+  // Auto generate if arriving from Results page
+  useEffect(() => {
+    if (location.state?.autoGenerate && !autoGenRef.current) {
+      autoGenRef.current = true
+      const rText = location.state.resumeText || ''
+      const jDesc = location.state.jd || ''
+      setResumeText(rText)
+      setJobDescription(jDesc)
+      
+      if (rText && jDesc) {
+        setIsGenerating(true)
+        setError('')
+        getAuthHeaders().then(headers => {
+          fetch(`${API_BASE}/api/v1/coverletter/generate-direct`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...headers },
+            credentials: 'include',
+            body: JSON.stringify({
+              resumeText: rText.trim(),
+              jobDescription: jDesc.trim(),
+              jobTitle: 'Target Role',
+              company: 'Target Company'
+            })
+          }).then(res => res.json()).then(data => {
+            if (data.data?.content) {
+              const newContent = data.data.content
+              const now = new Date()
+              const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              const newVersion = {
+                id: 1,
+                label: 'AI Tailored Letter',
+                date: dateStr,
+                content: newContent,
+                jobTitle: 'Target Role',
+                company: 'Target Company'
+              }
+              setVersions([newVersion])
+              setActiveVersion(1)
+              setLetter(newContent)
+            }
+          }).catch(err => setError(err.message)).finally(() => setIsGenerating(false))
+        })
+      }
+    }
+  }, [location.state])
+
+  const handleGenerateFromLatest = () => {
+    if (!latestAnalysis) return
+    const rText = latestAnalysis.resumeText || ''
+    const jDesc = latestAnalysis.jobDescription || ''
+    setResumeText(rText)
+    setJobDescription(jDesc)
+    setIsGenerating(true)
+    setError('')
+    getAuthHeaders().then(headers => {
+      fetch(`${API_BASE}/api/v1/coverletter/generate-direct`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        credentials: 'include',
+        body: JSON.stringify({
+          resumeText: rText.trim(),
+          jobDescription: jDesc.trim(),
+          jobTitle: latestAnalysis.jobTitle || 'Target Position',
+          company: latestAnalysis.companyName || 'Target Company'
+        })
+      }).then(res => res.json()).then(data => {
+        if (data.data?.content) {
+          const newContent = data.data.content
+          const now = new Date()
+          const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          const newVersion = {
+            id: 1,
+            label: 'AI Tailored Letter',
+            date: dateStr,
+            content: newContent,
+            jobTitle: latestAnalysis.jobTitle || 'Target Position',
+            company: latestAnalysis.companyName || 'Target Company'
+          }
+          setVersions([newVersion])
+          setActiveVersion(1)
+          setLetter(newContent)
+        }
+      }).catch(err => setError(err.message)).finally(() => setIsGenerating(false))
+    })
   }
 
   // ─── Upload & Extract Resume Text ───
@@ -54,10 +160,11 @@ export default function CoverLetterPage() {
     try {
       const formData = new FormData()
       formData.append('resume', file)
+      const authHeaders = await getAuthHeaders()
 
       const res = await fetch(`${API_BASE}/api/v1/resumes/extract-text`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: authHeaders,
         credentials: 'include',
         body: formData,
       })
@@ -87,9 +194,10 @@ export default function CoverLetterPage() {
     setIsGenerating(true)
 
     try {
+      const authHeaders = await getAuthHeaders()
       const res = await fetch(`${API_BASE}/api/v1/coverletter/generate-direct`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         credentials: 'include',
         body: JSON.stringify({
           resumeText: resumeText.trim(),
@@ -147,9 +255,10 @@ export default function CoverLetterPage() {
     setError('')
 
     try {
+      const authHeaders = await getAuthHeaders()
       const res = await fetch(`${API_BASE}/api/v1/coverletter/generate-direct`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         credentials: 'include',
         body: JSON.stringify({
           resumeText: resumeText.trim(),
@@ -229,8 +338,8 @@ export default function CoverLetterPage() {
         </style>
       </head>
       <body>
-        <h1>John Doe</h1>
-        <div class="contact">john.doe@gmail.com · (555) 123-4567</div>
+        <h1>${user?.fullName || location.state?.fileName?.split('.')[0] || 'Candidate Name'}</h1>
+        <div class="contact">${user?.primaryEmailAddress?.emailAddress || 'candidate@careerlens.ai'} · Screened Candidate</div>
         <hr />
         <div class="date">${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
         ${paragraphs}
@@ -254,6 +363,31 @@ export default function CoverLetterPage() {
     <DashboardLayout>
       <TopBar title="Cover Letter Editor" subtitle="AI-generated and fully editable" />
       <div className="cl__content">
+        {/* Prominent Demo Sample Alert Banner */}
+        {versions.length === 1 && versions[0].company === 'Google' && (
+          <div style={{ padding: '20px 24px', background: 'linear-gradient(135deg, rgba(108,92,231,0.25), rgba(0,184,148,0.15))', border: '1px solid var(--cl-secondary)', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'white', display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                <Sparkles style={{ color: 'var(--cl-warning)' }} /> You are currently viewing the default demo sample letter!
+              </h3>
+              <p style={{ color: 'var(--cl-on-surface-variant)', fontSize: '0.9rem', margin: '6px 0 0 0' }}>
+                Click below to instantly generate a personalized cover letter using your latest analyzed resume and job posting.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              {latestAnalysis ? (
+                <button className="btn-primary" style={{ background: 'var(--cl-secondary)', color: '#0f172a', fontWeight: 800, padding: '10px 20px' }} onClick={handleGenerateFromLatest} disabled={isGenerating}>
+                  {isGenerating ? <><Loader2 className="spin" size={18} /> Generating AI Letter...</> : <><Sparkles size={18} /> Auto-Generate From Screened Resume</>}
+                </button>
+              ) : (
+                <button className="btn-primary" style={{ padding: '10px 20px' }} onClick={() => setShowGenerateForm(true)}>
+                  <Upload size={18} /> Upload Resume & Generate
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Version Tabs + New Button */}
         <div className="cl__versions">
           {versions.map(v => (
@@ -407,8 +541,8 @@ export default function CoverLetterPage() {
             <h3 className="cl__preview-title">Document Preview</h3>
             <div className="cl__preview-doc">
               <div className="cl__preview-header-bar">
-                <div className="cl__preview-name">John Doe</div>
-                <div className="cl__preview-contact">john.doe@gmail.com · (555) 123-4567</div>
+                <div className="cl__preview-name">{user?.fullName || location.state?.fileName?.split('.')[0] || 'Candidate Name'}</div>
+                <div className="cl__preview-contact">{user?.primaryEmailAddress?.emailAddress || 'candidate@careerlens.ai'} · Verified Applicant</div>
               </div>
               <div className="cl__preview-date">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
               <div className="cl__preview-body">

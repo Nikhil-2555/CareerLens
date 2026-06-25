@@ -1,4 +1,5 @@
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
+import { useUser, useClerk, UserButton } from '@clerk/clerk-react'
 import {
   LayoutDashboard,
   Search,
@@ -23,15 +24,15 @@ const navItems = [
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
-  const navigate = useNavigate()
+  const { user } = useUser()
+  const { signOut } = useClerk()
 
-  const user = JSON.parse(localStorage.getItem('user') || '{"name":"User", "email":"user@example.com"}')
-  const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+  const userName = user?.fullName || user?.firstName || 'User'
+  const userEmail = user?.primaryEmailAddress?.emailAddress || ''
+  const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('user')
-    navigate('/login')
+    signOut({ redirectUrl: '/' })
   }
 
   return (
@@ -70,12 +71,16 @@ export default function Sidebar() {
 
       <div className="sidebar__footer">
         <div className="sidebar__user">
-          <div className="sidebar__avatar">{initials}</div>
-          {!collapsed && (
-            <div className="sidebar__user-info">
-              <span className="sidebar__user-name">{user.name}</span>
-              <span className="sidebar__user-email">{user.email}</span>
-            </div>
+          {collapsed ? (
+            <UserButton afterSignOutUrl="/" />
+          ) : (
+            <>
+              <UserButton afterSignOutUrl="/" />
+              <div className="sidebar__user-info">
+                <span className="sidebar__user-name">{userName}</span>
+                <span className="sidebar__user-email">{userEmail}</span>
+              </div>
+            </>
           )}
         </div>
         <button className="sidebar__link sidebar__logout" title="Logout" onClick={handleLogout}>

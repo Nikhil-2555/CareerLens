@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useAuth } from '@clerk/clerk-react'
 import DashboardLayout from '../components/DashboardLayout'
 import TopBar from '../components/TopBar'
 import { Upload, FileText, Search, Loader2, Briefcase, TrendingUp } from 'lucide-react'
@@ -15,9 +16,10 @@ export default function JobMatcherPage() {
   const [error, setError] = useState('')
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef(null)
+  const { getToken } = useAuth()
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('accessToken')
+  const getAuthHeaders = async () => {
+    const token = await getToken()
     return token ? { 'Authorization': `Bearer ${token}` } : {}
   }
 
@@ -31,10 +33,11 @@ export default function JobMatcherPage() {
     try {
       const formData = new FormData()
       formData.append('resume', selectedFile)
+      const authHeaders = await getAuthHeaders()
 
       const res = await fetch(`${API_BASE}/api/v1/resumes/extract-text`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: authHeaders,
         credentials: 'include',
         body: formData,
       })
@@ -65,9 +68,10 @@ export default function JobMatcherPage() {
     setMatches(null)
 
     try {
+      const authHeaders = await getAuthHeaders()
       const res = await fetch(`${API_BASE}/api/v1/analyses/match-jobs`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         credentials: 'include',
         body: JSON.stringify({ resumeText: resumeText.trim() }),
       })
